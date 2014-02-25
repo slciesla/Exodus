@@ -1,0 +1,226 @@
+body {
+	font-family: 'Roboto Slab', serif !important;
+	-webkit-user-select: none; /* Webkit */ 
+	-moz-user-select: none; /* Firefox */ 
+	-ms-user-select: none; /* IE 10 */ 
+	/* Currently not supported in Opera but will be soon */ 
+	-o-user-select: none; 
+	user-select: none;
+}
+.ui-widget {
+	font-family: 'Roboto Slab', serif !important;
+}
+div {
+}
+
+h3 {
+	margin-top: 0px;
+}
+
+#document {
+	min-height: 600px;
+}
+
+#popUpDiv {
+	display: none;
+	position: absolute;
+	left: 100px;
+	top: 50px;
+	border: 1px solid black;
+	padding: 10px;
+	background-color: #AAA;
+	text-align: justify;
+	font-size: 12px;
+	width: 135px;
+	z-index: 100;
+}
+
+#breakingNews {
+	width: 400px;
+	position: absolute;
+	right: 0px;
+	bottom: 25px;
+	float: right;
+}
+
+.breakingNewsItem {
+	width: 400px;
+	float: right;
+}
+
+#header {
+	background-image: url('../images/exodus_header.png');
+	background-repeat: no-repeat;
+	width: 100%;
+	float: right;
+	margin-bottom: 4px;
+}
+
+.headerButton {
+	cursor: pointer;
+	float: right;
+	min-width: 75px;
+	border: 1px solid #ccc;
+	margin-right: 4px;
+	text-align: center;
+	padding: 2px 4px;
+	border-radius: 4px;
+	
+	-moz-user-select: none; 
+	-khtml-user-select: none; 
+	-webkit-user-select: none; 
+	-o-user-select: none;
+	
+	background: #feffe8; /* Old browsers */
+	background: -moz-linear-gradient(top,  #feffe8 0%, #d6dbbf 100%); /* FF3.6+ */
+	background: -o-linear-gradient(top,  #feffe8 0%,#d6dbbf 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #feffe8 0%,#d6dbbf 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #feffe8 0%,#d6dbbf 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#feffe8', endColorstr='#d6dbbf',GradientType=0 ); /* IE6-9 */
+}
+
+.activeAlert {
+	color: white;
+	font-weight: bold;
+	background: #a90329; /* Old browsers */
+	background: -moz-linear-gradient(top,  #a90329 0%, #8f0222 44%, #6d0019 100%); /* FF3.6+ */
+	background: -o-linear-gradient(top,  #a90329 0%,#8f0222 44%,#6d0019 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #a90329 0%,#8f0222 44%,#6d0019 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #a90329 0%,#8f0222 44%,#6d0019 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#a90329', endColorstr='#6d0019',GradientType=0 ); /* IE6-9 */
+}
+
+#infoDiv {
+	float: left;
+	width: 25%;
+	min-width: 250px;
+}
+
+#activityDiv {
+	float: left;
+}
+
+.alertDiv {
+	padding: 6px;
+	border: 1px solid #000;
+	width: 700px;
+	height: 400px;
+	position: absolute;
+	left: 50%;
+	margin-left: -350px;
+	margin-top: 50px;
+	box-shadow: 0px 0px 15px 1px #CCC;
+	-webkit-box-shadow: 0px 0px 15px 1px #CCC;
+	background-color: #FFF;
+	overflow: auto;
+	z-index: 101;
+}
+
+#overlay {
+    position: fixed;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+	background-color: #555;
+	opacity: 0.7;
+	z-index: 100;
+}
+
+.hiddenDiv {
+	display: none;
+}
+
+#footer {
+	position: fixed;
+	bottom: 0;
+}
+
+.footerItem {
+	float: left;
+	padding-right: 40px;
+}
+
+.newVersion {
+	color: #E53636;
+}
+
+.disabled {
+	opacity: 0.5;
+	width: 100px;
+	height: 30px;
+}
+
+.enabled {
+}
+
+.gameButton {
+	color: #222;
+	border: 1px solid #AAA;
+	border-radius: 4px;
+	position: relative;
+	width: 110px;
+	height: 30px;
+	margin-bottom: 4px;
+	-moz-user-select: none; 
+	-khtml-user-select: none; 
+	-webkit-user-select: none; 
+	-o-user-select: none;
+	
+	background: #CCC; /* Old browsers */
+	background: -moz-linear-gradient(top,  #DDD 0%, #CCC 100%); /* FF3.6+ */
+	background: -o-linear-gradient(top,  #DDD 0%,#CCC 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #DDD 0%,#CCC 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #DDD 0%,#CCC 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#DDD', endColorstr='#CCC',GradientType=0 ); /* IE6-9 */
+}
+
+.ui-progressbar, .progressbar {
+	position: relative;
+	width: 110px;
+	height: 30px;
+	margin-bottom: 4px;
+	-moz-user-select: none; 
+	-khtml-user-select: none; 
+	-webkit-user-select: none; 
+	-o-user-select: none;
+}
+
+.progress-label {
+	cursor: pointer;
+	width: 110px;
+	height: 30px;
+	font-size: 10pt;
+	position: absolute;
+	top: 6px;
+	font-weight: bold;
+	text-shadow: 1px 1px 0 #fff;
+	text-align: center;
+	-moz-user-select: none; 
+	-khtml-user-select: none; 
+	-webkit-user-select: none; 
+	-o-user-select: none;
+}
+
+#asteroid {
+	width: 100px;
+	height: 100px;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	background-image: url('../images/asteroid_full.png');
+	background-repeat: no-repeat;
+	display: none;
+	z-index: 99;
+}
+
+.headerTab {
+	float: left;
+	padding: 2px 4px;
+	width: 100px;
+	border: 1px solid black;
+	text-align: center;
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	margin-right: -1px;
+}

@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Exodus</title>
+
+<!----------------------
+ - Exodus
+ - By: Stephen Ciesla
+ - 
+ - Feel free to play around with the code, just
+ - please do not steal credit, rehost without
+ - permission, or profit off it in anyway.
+ ----------------------->
+ 
+<script src='libs/snackJS/snack-min.js'></script>
+<script src='libs/jQuery/jquery-1.10.2.min.js'></script>
+<script src='libs/jQuery-ui/ui/minified/jquery-ui.min.js'></script>
+<script src='js/Game.js'></script>
+
+<!--
+ Font from http://www.google.com/fonts/specimen/Roboto+Slab
+ -->
+<link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="libs/jQuery-ui/themes/base/jquery-ui.css" />
+<link rel="stylesheet" href="css/Game.css" />
+
+</head>
+<body id='body'>
+	<div id='asteroid'></div>
+	<div id='popUpDiv'></div>
+	<div id='overlay' class='hiddenDiv'></div>
+	<div id='document' style='display:none;'>
+		<div id='breakingNews'></div>
+		<div id='header'>
+			<div id='menuButton' class='headerButton'>Menu</div>
+			<div id='saveButton' class='headerButton'>Save</div>
+			<div id='changeLogButton' class='headerButton'>Change Log</div>
+			<div id='newsButton' class='headerButton'>Game News</div>
+			<div style='clear: both; height: 4px'></div>
+			<div id='alertButton' class='headerButton activeAlert'>Alerts</div>
+			<div id='upgradeButton' class='headerButton'>Upgrades</div>
+			<div id='statsButton' class='headerButton'>Stats</div>
+			<div id='upgradeButton' class='headerButton'>Achievements</div>
+		</div>
+		<div id='headerTabs'>
+			<div id='mainTab' class='headerTab'>MAIN</div>
+			<div id='miningTab' class='headerTab'>SECRET</div>
+		</div>
+		<div style='clear: both; height: 6px;'></div>
+		<div>
+			<div id='baseTab'>
+				<div id='infoDiv'>
+					<div id='experience'>0</div>
+					<div id='population'>0</div>
+					<div id='idlePop'>0</div>
+					<div id='food'>0</div>
+					<div id='foodNeeded'>0</div>
+					<div id='wood'>0</div>
+					<div id='houses'>0</div>
+				</div>
+				<div id='activityDiv' style="width: 120px">
+					<div id="popProgBar" class='ui-progressbar disabled'>
+						<div class="progress-label" id='popProgBarLabel'>Make Babies</div>
+					</div>
+					<div id="popSlider"></div>
+					<div id="popRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+					<div id="foodProgBar" class='ui-progressbar disabled'>
+						<div class="progress-label" id='foodProgBarLabel'>Gather Food</div>
+					</div>
+					<div id="foodSlider"></div>
+					<div id="foodRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+					<div id="woodProgBar" class='ui-progressbar disabled'>
+						<div class="progress-label" id='woodProgBarLabel'>Harvest Wood</div>
+					</div>
+					<div id="woodSlider"></div>
+					<div id="woodRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+					<div id="houseButton" class='gameButton disabled'>
+						<div class="progress-label">Build House</div>
+					</div>
+				</div>
+			</div>
+			<div id='miningTab'>
+			</div>
+		</div>
+		<div id='extrasDiv'>
+		<div id='newsDiv' class='alertDiv hiddenDiv'></div></div>
+	</div>
+	<div id='footer'>
+		<div id='version' class='footerItem'></div>
+		<div class='footerItem'>Forums</div>
+		<div class='footerItem'>Wiki</div>
+		<div class='footerItem'>&copy;2013</div>
+	</div>
+</body>
+</html>
