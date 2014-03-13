@@ -16,6 +16,9 @@
 <script src='libs/snackJS/snack-min.js'></script>
 <script src='libs/jQuery/jquery-1.10.2.min.js'></script>
 <script src='libs/jQuery-ui/ui/minified/jquery-ui.min.js'></script>
+<script src='js/seedrandom.js'></script>
+<script src='js/Utility.js'></script>
+<script src='js/Planet.js'></script>
 <script src='js/Game.js'></script>
 
 <!--
@@ -31,6 +34,7 @@
 	<div id='popUpDiv'></div>
 	<div id='overlay' class='hiddenDiv'></div>
 	<div id='document' style='display:none;'>
+		<div id='planetCanvasDiv'><canvas id='planetCanvas' width='600px' height='800px'></canvas></div>
 		<div id='breakingNews'></div>
 		<div id='header'>
 			<div id='menuButton' class='headerButton'>Menu</div>
@@ -39,24 +43,26 @@
 			<div id='newsButton' class='headerButton'>Game News</div>
 			<div style='clear: both; height: 4px'></div>
 			<div id='alertButton' class='headerButton activeAlert'>Alerts</div>
-			<div id='upgradeButton' class='headerButton'>Upgrades</div>
 			<div id='statsButton' class='headerButton'>Stats</div>
 			<div id='upgradeButton' class='headerButton'>Achievements</div>
 		</div>
 		<div id='headerTabs'>
-			<div id='mainTab' class='headerTab'>MAIN</div>
-			<div id='miningTab' class='headerTab'>SECRET</div>
+			<div id='mainTab' class='headerTab activeTab'>MAIN</div>
+			<div id='miningTab' class='headerTab' style='display: none'>SECRET</div>
+			<div id='researchTab' class='headerTab' style='display: none'>SECRET</div>
+			<div id='upgradesTab' class='headerTab'>UPGRADES</div>
 		</div>
 		<div style='clear: both; height: 6px;'></div>
 		<div>
+			<div id='intro'></div>
 			<div id='baseTab'>
 				<div id='infoDiv'>
 					<div id='experience'>0</div>
 					<div id='population'>0</div>
 					<div id='idlePop'>0</div>
 					<div id='food'>0</div>
-					<div id='foodNeeded'>0</div>
 					<div id='wood'>0</div>
+					<div id='stone'>0</div>
 					<div id='houses'>0</div>
 				</div>
 				<div id='activityDiv' style="width: 120px">
@@ -75,6 +81,11 @@
 					</div>
 					<div id="woodSlider"></div>
 					<div id="woodRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+					<div id="stoneProgBar" class='ui-progressbar disabled'>
+						<div class="progress-label" id='stoneProgBarLabel'>Pick Up Stones</div>
+					</div>
+					<div id="stoneSlider"></div>
+					<div id="stoneRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
 					<div id="houseButton" class='gameButton disabled'>
 						<div class="progress-label">Build House</div>
 					</div>

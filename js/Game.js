@@ -36,8 +36,9 @@ Game.Start = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Game.version = 'Beta v0.1.6.4';
+			Game.version = 'Beta v0.1.8.0';
 			Game.initialized = 1;
+			Game.newGame = true;
 			Game.fps = 30;
 			Game.saveEvery = 300; //Save every 5 min
 			Game.minPop = 1;
@@ -45,12 +46,15 @@ Game.Start = function() {
 			Game.baseMaxPop = 2000;
 			Game.basePopMod = 10;
 			Game.baseHarvestMod = 1.0;
-			Game.baseWoodHarvest = 1;
-			Game.baseWoodMod = 60;
-			Game.baseWoodPct = .05;
 			Game.baseFoodHarvest = 2;
 			Game.baseFoodMod = 30;
 			Game.baseFoodPct = .05;
+			Game.baseWoodHarvest = 1;
+			Game.baseWoodMod = 60;
+			Game.baseWoodPct = .05;
+			Game.baseStoneHarvest = 1;
+			Game.baseStoneMod = 90;
+			Game.baseStonePct = .05;
 			Game.housePop = 200;
 			Game.baseClickExp = 1;
 			Game.baseAutoClickExpMod = .1;
@@ -75,6 +79,7 @@ Game.Start = function() {
 			Game.nextPop = 0;
 			Game.nextWood = 0;
 			Game.nextFood = 0;
+			Game.nextStone = 0;
 			Game.newsId = 0;
 			Game.delay = 0;
 			Game.time = new Date().getTime();
@@ -94,12 +99,15 @@ Game.Start = function() {
 			Game.State.houses = 0;
 			Game.State.wood = 0;
 			Game.State.food = 0;
+			Game.State.stone = 0;
 			Game.State.timeToEat = 0;
+			Game.State.planet = {};
 			//Sliders
 			Game.State.range = {};
-			Game.State.range.pop = 2;
-			Game.State.range.food = 0;
+			Game.State.range.pop = 150;
+			Game.State.range.food = 50;
 			Game.State.range.wood = 0;
+			Game.State.range.stone = 0;
 			//Stats
 			Game.State.stats = {};
 			Game.State.stats.harvestAuto = 0;
@@ -110,6 +118,7 @@ Game.Start = function() {
 			Game.State.stats.harvestPop = 0;
 			Game.State.stats.harvestWood = 0;
 			Game.State.stats.harvestFood = 0;
+			Game.State.stats.harvestStone = 0;
 			Game.State.stats.expGained = 0;
 			Game.State.stats.asteroidSpawns = 0;
 			Game.State.stats.asteroidClicks = 0;
@@ -142,6 +151,19 @@ Game.Start = function() {
 				function (){
 					$("#newsDiv").html("");
 					var txt = "<h3>CHANGE LOG:</h3>\
+						2014.03.11:&nbsp;&nbsp;&nbsp;Beta v0.1.8.0<br />\
+						Added Stone Harvesting<br />\
+						<br />\
+						2014.02.25:&nbsp;&nbsp;&nbsp;Beta v0.1.7.1<br />\
+						Added visual planets. Land masses are static for now, want to eventually<br />\
+						make them random or pseudo-random. Colors are based on the planet you pick at the<br />\
+						beginning of the game (or the one that was randomly assigned to you)<br />\
+						This was not the big, cool thing, that's still in the works<br />\
+						<br />\
+						2014.02.25:&nbsp;&nbsp;&nbsp;Beta v0.1.7.0<br />\
+						Added story to the beginning of the game<br />\
+						Added planet selection to new games (old games get a boring default planet)<br />\
+						<br />\
 						2014.02.17:&nbsp;&nbsp;&nbsp;Beta v0.1.6.4<br />\
 						Fixed some bugs<br />\
 						<br />\
@@ -214,6 +236,7 @@ Game.Start = function() {
 						"Total Population Bred: " + hrFormat(Game.State.stats.harvestPop) + "<br />" +
 						"Total Wood Gathered: " + hrFormat(Game.State.stats.harvestWood) + "<br />" +
 						"Total Food Gathered: " + hrFormat(Game.State.stats.harvestFood) + "<br />" +
+						"Total Stone Gathered: " + hrFormat(Game.State.stats.harvestStone) + "<br />" +
 						"Total Experience Gained: " + hrFormat(Game.State.stats.expGained) + "<br />" +
 						"Number of Asteroids Spawned: " + hrFormat(Game.State.stats.asteroidSpawns) + "<br />" +
 						"Number of Times Asteroids Clicked: " + hrFormat(Game.State.stats.asteroidClicks) + "<br />" +
@@ -307,6 +330,28 @@ Game.Start = function() {
 			Game.foodBarListener.detach();
 			$("#foodProgBar").addClass('disabled');
 			
+			Game.stoneBarListener = snack.listener({node: document.getElementById('stoneProgBar'),
+				event: 'click'}, 
+				function (){
+					Game.stoneBarListener.detach();
+					Game.State.stone = Math.floor(Game.State.stone + Game.currStoneHarvest);
+					Game.State.stats.harvestStone = Math.floor(Game.State.stone + Game.currStoneHarvest);
+					if(Game.nextStone >= Game.currStoneMod*5) {
+						Game.GiveExp(Game.currAutoClickExp);
+						Game.State.stats.harvestAuto += 1;
+					} else {
+						Game.GiveExp(Game.currClickExp);
+						Game.State.stats.harvestClick += 1;
+					}
+					Game.nextStone = 0;
+					$("#stoneProgBar").progressbar({value: 0});
+					$("#stoneProgBar").addClass('disabled');
+					$("#stoneProgBar").removeClass('enabled');
+				}
+			);
+			Game.stoneBarListener.detach();
+			$("#stoneProgBar").addClass('disabled');
+			
 			Game.houseBtnListener = snack.listener({node: document.getElementById('houseButton'),
 				event: 'click'}, 
 				function (){
@@ -334,7 +379,9 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currPopIncrease));
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currPopIncrease) + "<br />" +
+							"Gain/hr (Auto): " + hrFormat(Game.currPopIncrease * 3600/(Game.currPopMod*5)) + "<br />" +
+							"Gain/hr (Manual): " + hrFormat(Game.currPopIncrease * 3600/(Game.currPopMod)) + "<br />");
 					});
 				}
 			);
@@ -342,7 +389,9 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currWoodHarvest));
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currWoodHarvest) + "<br />" +
+							"Gain/hr (Auto): " + hrFormat(Game.currWoodHarvest * 3600/(Game.currWoodMod*5)) + "<br />" +
+							"Gain/hr (Manual): " + hrFormat(Game.currWoodHarvest * 3600/(Game.currWoodMod)) + "<br />");
 					});
 				}
 			);
@@ -350,7 +399,20 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currFoodHarvest));
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currFoodHarvest) + "<br />" +
+							"Gain/hr (Auto): " + hrFormat(Game.currFoodHarvest * 3600/(Game.currFoodMod*5)) + "<br />" +
+							"Gain/hr (Manual): " + hrFormat(Game.currFoodHarvest * 3600/(Game.currFoodMod)) + "<br />" +
+							"Consumed/hr: " + hrFormat(Game.currFoodConsumption * Game.State.pop * 6));
+					});
+				}
+			);
+			Game.stoneBarOverListener = snack.listener({node: document.getElementById('stoneProgBar'),
+				event: 'mouseover'}, 
+				function(evt){
+					$(this).mousemove(function(event){
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currStoneHarvest) + "<br />" +
+							"Gain/hr (Auto): " + hrFormat(Game.currStoneHarvest * 3600/(Game.currStoneMod*5)) + "<br />" +
+							"Gain/hr (Manual): " + hrFormat(Game.currStoneHarvest * 3600/(Game.currStoneMod)) + "<br />");
 					});
 				}
 			);
@@ -378,6 +440,12 @@ Game.Start = function() {
 				}
 			);
 			Game.foodBarOverListener = snack.listener({node: document.getElementById('foodProgBar'),
+				event: 'mouseout'}, 
+				function(evt){
+					Game.HidePopUpDiv();
+				}
+			);
+			Game.stoneBarOverListener = snack.listener({node: document.getElementById('stoneProgBar'),
 				event: 'mouseout'}, 
 				function(evt){
 					Game.HidePopUpDiv();
@@ -460,6 +528,29 @@ Game.Start = function() {
 				});
 				$("#woodRangeLabel").html(hrFormat(Game.State.range.wood));
 			});
+			$(function() {
+				$("#stoneSlider").slider({
+				  range: "min",
+				  value: Game.State.range.stone,
+				  min: 0,
+				  max: Game.State.pop,
+				  slide: function( event, ui ) {
+					Game.State.range.stone = ui.value;
+					Game.UpdateSliders();
+					if(Game.currIdlePop < 0) {
+						ui.value += Game.currIdlePop;
+						Game.UpdateSliders();
+					}
+					Game.State.range.stone = ui.value;
+					$("#stoneRangeLabel").html(hrFormat(Game.State.range.stone));
+					Game.nextStone = 0;
+					Game.stoneBarListener.detach();
+					$("#stoneProgBar").addClass('disabled');
+					$("#stoneProgBar").removeClass('enabled');
+				  }
+				});
+				$("#stoneRangeLabel").html(hrFormat(Game.State.range.stone));
+			});
 			
 			//---------------------------
 			//Start the game
@@ -487,24 +578,73 @@ Game.Start = function() {
 	
 	Game.WipeGame = function() {
 		localStorage.gameState=JSON.stringify({});
-		Game.Init();
+		window.location.reload();
 	};
+	
+	//---------------------------
+	//Start A New Game
+	//---------------------------
+	Game.NewGame = function() {
+		Game.newGame = true;
+		$('#baseTab').css('display','none');
+		$('#intro').html('<br />You are the leader of one of many colony ships that left Earth many years \
+		ago. Your ships scanners have finally found what could be your new home. Your ship is the first \
+		to reach its destination so you have little experience or knowledge of what is to come. You must \
+		now choose which planet your people will now colonize:<br /><br />');
+		var planet1 = new Planet(true);
+		planet1.name = "Planet A";
+		var planet2 = new Planet(true);
+		planet2.name = "Planet B";
+		$('#intro').append('<div id="planet1" class="planetChoice"><strong>'+planet1.name+'</strong><br /> \
+		This planet has '+planet1.cosmetic.color1+' flora and '+planet1.cosmetic.color2+' tinted water. \
+		The scanners indicate this is an otherwise normal planet with '+planet1.satellites.length+' moons.</div>');
+		$('#intro').append('<div id="planet2" class="planetChoice"><strong>'+planet2.name+'</strong><br /> \
+		This planet has '+planet2.cosmetic.color1+' flora and '+planet2.cosmetic.color2+' tinted water. \
+		The scanners indicate this is an otherwise normal planet with '+planet2.satellites.length+' moons.</div>');
+		
+		Game.planet1ClickListener = snack.listener({node: document.getElementById('planet1'),
+			event: 'click'}, 
+			function (){
+				Game.State.planet = planet1;
+				$('#baseTab').css('display','block');
+				$('#intro').css('display','none');
+				Game.newGame = false;
+				Game.Loop();
+			}
+		);
+		Game.planet2ClickListener = snack.listener({node: document.getElementById('planet2'),
+			event: 'click'}, 
+			function (){
+				Game.State.planet = planet2;
+				$('#baseTab').css('display','block');
+				$('#intro').css('display','none');
+				Game.newGame = false;
+				Game.Loop();
+			}
+		);
+	}
 	
 	//---------------------------
 	//Load the Game
 	//---------------------------
 	Game.LoadGame = function() {
 		try {
-			var savedGame = JSON.parse(localStorage.gameState);
-			if(savedGame) {
+			if(localStorage.gameState != JSON.stringify({})) {
 				//We want to extend the state so that if the user is loading an old version, it works.
 				//This only runs into issues if variables change, which means we'll need special cases 
 				//whenever that happens.
-				jQuery.extend(true,Game.State,savedGame);
+				jQuery.extend(true,Game.State,JSON.parse(localStorage.gameState));
 				Game.news.push("Loaded Successfully");
+				Game.newGame = false;
+				var tmpPlanet = new Planet(true);
+				Game.State.planet = tmpPlanet.LoadPlanet(Game.State.planet);
+			} else {
+				Game.news.push("No Saved Game Found");
+				Game.NewGame();
 			}
 		} catch(e) {
-			Game.news.push("Failed Loading Saved Game State");
+			Game.news.push("Error Loading Saved Game");
+			Game.NewGame();
 		}
 	};
 	
@@ -542,12 +682,12 @@ Game.Start = function() {
 			Game.WriteBreakingNews(Game.newsId);
 			Game.newsId = Game.news.length;
 		}
-		e('experience').innerHTML = "Experience: " + hrFormat(Game.State.exp);
+		e('experience').innerHTML = "Experience: " + (Game.State.exp).toFixed(1);
 		e('population').innerHTML = "Population: " + hrFormat(Game.State.pop) + " / " + hrFormat(Game.currMaxPop);
 		e('idlePop').innerHTML = "Idle Pop: " + hrFormat(Game.currIdlePop < 0 ? 0 : Game.currIdlePop);
 		e('food').innerHTML = "Food: " + hrFormat(Game.State.food);
-		e('foodNeeded').innerHTML = "Food Needed In "+((Game.currFoodConsumptionTime-Game.State.timeToEat)/60).toFixed(1)+" minutes: " + hrFormat(Game.currFoodConsumption * Game.State.pop);
 		e('wood').innerHTML = "Wood: " + hrFormat(Game.State.wood);
+		e('stone').innerHTML = "Stone: " + hrFormat(Game.State.stone);
 		e('houses').innerHTML = "Houses: " + hrFormat(Game.State.houses);
 		
 		//Population Progress Bar
@@ -588,6 +728,22 @@ Game.Start = function() {
 				}
 			});
 		});
+		
+		//Stone Progress Bar
+		$(function() {
+			$("#stoneProgBar").progressbar({
+				value: Game.nextStone,
+				max: Game.currStoneMod,
+				complete: function( event, ui ) {
+					$("#stoneProgBar").removeClass('disabled');
+					$("#stoneProgBar").addClass('enabled');
+					Game.stoneBarListener.attach();
+				}
+			});
+		});
+		
+		//Planet
+		Game.State.planet.Draw('planetCanvas');
 	};
 	
 	Game.AsteroidSpawn = function() {
@@ -677,7 +833,15 @@ Game.Start = function() {
 		$("#woodSlider").slider("option", "value", value);
 		$("#woodRangeLabel").html(hrFormat(value));
 		
-		Game.currIdlePop = Game.State.pop - $("#popSlider").slider("option", "value") - $("#foodSlider").slider("option", "value") - $("#woodSlider").slider("option", "value");
+		$("#stoneSlider").slider("option", "max", Game.State.pop);
+		var value = Game.State.range.stone;
+		value = value > Game.State.pop ? Game.State.pop : value;
+		Game.State.range.stone = value;
+		$("#stoneSlider").slider("option", "value", value);
+		$("#stoneRangeLabel").html(hrFormat(value));
+		
+		Game.currIdlePop = Game.State.pop - $("#popSlider").slider("option", "value") - $("#foodSlider").slider("option", "value")
+			- $("#woodSlider").slider("option", "value") - $("#stoneSlider").slider("option", "value");
 	}
 	
 	Game.UpdateCalculations = function() {
@@ -692,9 +856,11 @@ Game.Start = function() {
 		Game.currPopMod = Game.basePopMod;
 		Game.currWoodMod = Game.baseWoodMod;
 		Game.currFoodMod = Game.baseFoodMod;
+		Game.currStoneMod = Game.baseStoneMod;
 		Game.currHarvestMod = Game.baseHarvestMod;
 		Game.currWoodHarvest = Math.ceil(Game.baseWoodHarvest * Game.baseWoodPct * Game.currHarvestMod * Game.State.range.wood);
 		Game.currFoodHarvest = Math.ceil(Game.baseFoodHarvest * Game.baseFoodPct * Game.currHarvestMod * Game.State.range.food);
+		Game.currStoneHarvest = Math.ceil(Game.baseStoneHarvest * Game.baseStonePct * Game.currHarvestMod * Game.State.range.stone);
 		Game.currFoodConsumptionTime = Game.baseFoodConsumptionTime;
 		Game.currFoodConsumption = Game.baseFoodConsumption;
 		Game.currMinTimeToAsteroid = Game.baseMinTimeToAsteroid;
@@ -757,6 +923,11 @@ Game.Start = function() {
 		if(Game.State.range.food > 0) {
 			Game.nextFood+=1/Game.fps;
 		}
+		
+		//Stone
+		if(Game.State.range.stone > 0) {
+			Game.nextStone+=1/Game.fps;
+		}
 		Game.State.timeToEat+=1/Game.fps;
 		if(Game.State.timeToEat >= Game.currFoodConsumptionTime) {
 			Game.State.timeToEat = 0;
@@ -801,6 +972,10 @@ Game.Start = function() {
 			Game.foodBarListener.fire();
 			Game.news.push("Food automatically gathered");
 		}
+		if(Game.nextStone >= Game.currStoneMod*5) {
+			Game.stoneBarListener.fire();
+			Game.news.push("Stones automatically rolled into storage");
+		}
 	};
 	
 	Game.UpdateCheck = function() {
@@ -817,20 +992,22 @@ Game.Start = function() {
 	//Game Loop
 	//---------------------------
 	Game.Loop=function() {
-		Game.Logic();
-		
-		//Logic looper for when slow
-		Game.delay+=((new Date().getTime()-Game.time)-1000/Game.fps);
-		Game.delay=Math.min(Game.delay,5000);
-		Game.time=new Date().getTime();
-		while(Game.delay>0) {
+		if(!Game.newGame) {
 			Game.Logic();
-			Game.delay-=1000/Game.fps;
+			
+			//Logic looper for when slow
+			Game.delay+=((new Date().getTime()-Game.time)-1000/Game.fps);
+			Game.delay=Math.min(Game.delay,5000);
+			Game.time=new Date().getTime();
+			while(Game.delay>0) {
+				Game.Logic();
+				Game.delay-=1000/Game.fps;
+			}
+			
+			Game.Draw();
+			
+			setTimeout(Game.Loop,1000/Game.fps);
 		}
-		
-		Game.Draw();
-		
-		setTimeout(Game.Loop,1000/Game.fps);
 	};
 };
 
