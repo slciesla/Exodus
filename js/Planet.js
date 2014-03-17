@@ -48,14 +48,14 @@ Planet.prototype = {
 		var ctx=c.getContext("2d");
 		ctx.globalCompositeOperation = 'source-over';
 		ctx.clearRect(0, 0, 600, 800);
-		ctx.fillStyle=colorHex1[this.cosmetic.color1ndx];
+		ctx.fillStyle=colorHex2[this.cosmetic.color2ndx];
 		ctx.globalAlpha = 0.7;
 		ctx.beginPath();
 		ctx.arc(this.originX,this.originY,this.radius,Math.PI*0.5,Math.PI*1.5);
 		ctx.fill();
 		
 		ctx.globalCompositeOperation = 'source-atop';
-		ctx.fillStyle=colorHex2[this.cosmetic.color2ndx];
+		ctx.fillStyle=colorHex1[this.cosmetic.color1ndx];
 		ctx.beginPath();
 		//Planet at equ is (200,400)
 		//(600,0) at north pole

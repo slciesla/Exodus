@@ -5,16 +5,22 @@ function e(item) {return document.getElementById(item);}
 // Events, which if ignored, go to a mailbox. After x time of having the game open, 
 //   they're still ignored, the "people" pick a random solution
 // Exp upgrades
-// Modifying speed of harvests based on assignees
 // Make buildings take time based on sliders
 // Make it so you can lock all but 1 slider
-// Allow for a queue of buildings
+// Allow for a queue of buildings that take time to build
 
 function hrFormat(number) {
 	number = number < 1 && number > 0 ? 1 : number;
     var s = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
     var e = Math.floor(Math.log(number) / Math.log(1000));
 	return number < 1000 ? Math.floor(number) : ((number / Math.pow(1000, e)).toFixed(2) + " " + s[e]);
+}
+
+function hideActivityDivs() {
+	$("#mainActivityDiv").css('display', 'none');
+	$("#mainTab").removeClass('activeTab');
+	$("#upgradesActivityDiv").css('display', 'none');
+	$("#upgradesTab").removeClass('activeTab');
 }
 
 //---------------------------
@@ -253,6 +259,24 @@ Game.Start = function() {
 				function (){
 					$("#newsDiv").toggleClass('hiddenDiv');
 					$("#overlay").toggleClass('hiddenDiv');
+				}
+			);
+			
+			//Game Tabs - Click
+			Game.mainTabButtonListener = snack.listener({node: document.getElementById('mainTab'),
+				event: 'click'}, 
+				function (){
+					hideActivityDivs();
+					$("#mainActivityDiv").css('display', 'block');
+					$("#mainTab").addClass('activeTab');
+				}
+			);
+			Game.upgradesTabButtonListener = snack.listener({node: document.getElementById('upgradesTab'),
+				event: 'click'}, 
+				function (){
+					hideActivityDivs();
+					$("#upgradesActivityDiv").css('display', 'block');
+					$("#upgradesTab").addClass('activeTab');
 				}
 			);
 			
