@@ -168,7 +168,7 @@ Game.Start = function() {
 					var txt = "<h3>CHANGE LOG:</h3>\
 						2014.03.18:&nbsp;&nbsp;&nbsp;Beta v0.1.9.0<br />\
 						Added an Upgrade! More to come soon!<br />\
-						Also, people die every second now<br />\
+						Also, people die every 2 minutes now<br />\
 						<br />\
 						2014.03.11:&nbsp;&nbsp;&nbsp;Beta v0.1.8.0<br />\
 						Added Stone Harvesting<br />\
