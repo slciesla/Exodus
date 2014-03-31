@@ -44,13 +44,14 @@
 			<div style='clear: both; height: 4px'></div>
 			<div id='alertButton' class='headerButton activeAlert'>Alerts</div>
 			<div id='statsButton' class='headerButton'>Stats</div>
-			<div id='upgradeButton' class='headerButton'>Achievements</div>
+			<div id='achievementsButton' class='headerButton'>Achievements</div>
 		</div>
 		<div id='headerTabs'>
-			<div id='mainTab' class='headerTab activeTab'>MAIN</div>
+			<div id='mainTab' class='headerTab activeTab'>HARVESTS</div>
+			<div id='buildingsTab' class='headerTab'>BUILDINGS</div>
+			<div id='upgradesTab' class='headerTab'>UPGRADES</div>
 			<div id='miningTab' class='headerTab' style='display: none'>SECRET</div>
 			<div id='researchTab' class='headerTab' style='display: none'>SECRET</div>
-			<div id='upgradesTab' class='headerTab'>UPGRADES</div>
 		</div>
 		<div style='clear: both; height: 6px;'></div>
 		<div>
@@ -64,6 +65,7 @@
 					<div id='wood'>0</div>
 					<div id='stone'>0</div>
 					<div id='houses'>0</div>
+					<div id='cabins'>0</div>
 				</div>
 				<div id='mainActivityDiv' class='activityDiv' style="width: 120px">
 					<div id="popProgBar" class='ui-progressbar disabled'>
@@ -86,13 +88,30 @@
 					</div>
 					<div id="stoneSlider"></div>
 					<div id="stoneRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+				</div>
+				<div id='buildingsActivityDiv' class='activityDiv' style="width: 120px; display: none;">
 					<div id="houseButton" class='gameButton disabled'>
 						<div class="progress-label">Build House</div>
+					</div>
+					<div id="cabinButton" class='gameButton disabled' style='display: none'>
+						<div class="progress-label">Build Cabin</div>
 					</div>
 				</div>
 				<div id='upgradesActivityDiv' class='activityDiv' style="width: 120px; display: none;">
 					<div id="experienceUpgrade" class='gameButton disabled'>
-						<div class="progress-label">+EXP Gain</div>
+						<div class="progress-label">EXP Gain</div>
+					</div>
+					<div id="autoClickUpgrade" class='gameButton disabled'>
+						<div class="progress-label">Auto Click Gain</div>
+					</div>
+					<div id="autoSpeedUpgrade" class='gameButton disabled'>
+						<div class="progress-label">Auto Click Speed</div>
+					</div>
+					<div id="manualClickUpgrade" class='gameButton disabled'>
+						<div class="progress-label">Click Gain</div>
+					</div>
+					<div id="upgradeCostUpgrade" class='gameButton disabled'>
+						<div class="progress-label">Upgrades Cost</div>
 					</div>
 					<div id="eraUpgrade" class='gameButton disabled'>
 						<div class="progress-label">Next Era</div>

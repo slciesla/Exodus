@@ -6,6 +6,8 @@ body {
 	/* Currently not supported in Opera but will be soon */ 
 	-o-user-select: none; 
 	user-select: none;
+	background-color: black;
+	color: lime;
 }
 .ui-widget {
 	font-family: 'Roboto Slab', serif !important;
@@ -22,6 +24,7 @@ h3 {
 }
 
 #popUpDiv {
+	color: black;
 	display: none;
 	position: absolute;
 	left: 100px;
@@ -43,6 +46,8 @@ h3 {
 	float: right;
 	max-height: 50%;
 	overflow: none;
+	color: lime;
+	text-shadow: 0.1em 0.1em 0.2em black;
 }
 
 .breakingNewsItem {
@@ -59,6 +64,7 @@ h3 {
 }
 
 .headerButton {
+	color: black;
 	cursor: pointer;
 	float: right;
 	min-width: 75px;
@@ -111,11 +117,12 @@ h3 {
 	left: 50%;
 	margin-left: -350px;
 	margin-top: 50px;
-	box-shadow: 0px 0px 15px 1px #CCC;
-	-webkit-box-shadow: 0px 0px 15px 1px #CCC;
+	box-shadow: 0px 0px 15px 1px green;
+	-webkit-box-shadow: 0px 0px 15px 1px green;
 	background-color: #FFF;
 	overflow: auto;
 	z-index: 101;
+	background-color: black;
 }
 
 #overlay {
@@ -217,6 +224,7 @@ h3 {
 }
 
 .headerTab {
+	color: black;
 	float: left;
 	padding: 2px 4px;
 	width: 100px;
