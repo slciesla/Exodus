@@ -44,7 +44,7 @@ Game.Start = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Game.version = 'Beta v0.2.0.0';
+			Game.version = 'Beta v0.2.0.1';
 			Game.initialized = 1;
 			Game.newGame = true;
 			Game.fps = 30;
@@ -181,11 +181,13 @@ Game.Start = function() {
 				function (){
 					$("#newsDiv").html("");
 					var txt = "<h3>CHANGE LOG:</h3>\
+						2014.03.30:&nbsp;&nbsp;&nbsp;Beta v0.2.0.1<br />\
+						Fixed some bugs with the click gather modifiers<br />\
 						2014.03.30:&nbsp;&nbsp;&nbsp;Beta v0.2.0.0<br />\
 						The Big Beta v0.2!<br />\
 						New, more spacey color scheme! (Coming soon, option to change color schemes)<br />\
-						Added hotkeys for the tabs, they go in order, 1-2-3, thinking of adding hotkeys for buttons on the current tab<br />\
-						Added CABINS! Now you can do something with all that pesky stone! Also, asteroids give stone!<br />\
+						Added hotkeys for the tabs, they go in order, 1-2-3<br />\
+						Added CABINS (need 25 houses)! Now you can do something with all that pesky stone! Also, asteroids give stone!<br />\
 						More Upgrades!<br />\
 						More Stats!<br />\
 						<br />\
@@ -270,7 +272,7 @@ Game.Start = function() {
 				function (){
 					$("#newsDiv").html("");
 					var firstPlay = new Date(Game.State.firstPlay);
-					var thisEra = (new Date().getTime()) - Game.State.firstPlay;
+					var thisEra = (new Date().getTime()) - Game.State.eraPlayed;
 					var thisEraDisplay = thisEra/1000/60/60;
 					var thisEraType = " hours";
 					if(thisEraDisplay > 1000) {
@@ -352,23 +354,29 @@ Game.Start = function() {
 				event: 'click'}, 
 				function (){
 					Game.popBarListener.detach();
-					Game.State.pop = Math.floor(Game.State.pop + Game.currPopIncrease);
-					Game.State.stats.harvestPop = Math.floor(Game.State.pop + Game.currPopIncrease);
-					if(Game.State.pop > Game.currMaxPop) {
-						Game.State.stats.harvestPop -= (Game.State.pop - Game.currMaxPop);
-						Game.State.pop = Game.currMaxPop;
-						Game.State.stats.harvestAuto += 1;
-					}
-					if(Game.nextPop >= Game.currPopMod*5) {
+					
+					var addedPop = 0;
+					if(Game.nextPop >= Game.currPopMod*5*Game.currAutoSpeedMod) {
 						Game.GiveExp(Game.currAutoClickExp);
+						Game.State.stats.harvestAuto += 1;
+						addedPop = Math.floor(Game.currPopIncrease * Game.currAutoClickMod);
 					} else {
 						Game.GiveExp(Game.currClickExp);
 						Game.State.stats.harvestClick += 1;
+						addedPop = Math.floor(Game.currPopIncrease * Game.currManualClickMod);
 					}
+					
+					Game.State.pop += addedPop;
+					Game.State.stats.harvestPop += addedPop;
 					if(Game.State.pop > Game.State.stats.maxPop) {
 						Game.State.stats.maxPop = Game.State.pop;
 					}
+					if(Game.State.pop > Game.currMaxPop) {
+						Game.State.stats.harvestPop -= (Game.State.pop - Game.currMaxPop);
+						Game.State.pop = Game.currMaxPop;
+					}
 					Game.nextPop = 0;
+					
 					$("#popProgBar").progressbar({value: 0});
 					$("#popProgBar").addClass('disabled');
 					$("#popProgBar").removeClass('enabled');
@@ -381,15 +389,20 @@ Game.Start = function() {
 				event: 'click'}, 
 				function (){
 					Game.woodBarListener.detach();
-					Game.State.wood = Math.floor(Game.State.wood + Game.currWoodHarvest);
-					Game.State.stats.harvestWood = Math.floor(Game.State.wood + Game.currWoodHarvest);
-					if(Game.nextWood >= Game.currWoodMod*5) {
+					
+					var addedWood = 0;
+					if(Game.nextWood >= Game.currWoodMod*5*Game.currAutoSpeedMod) {
+						addedWood = Math.floor(Game.currWoodHarvest * Game.currAutoClickMod);
 						Game.GiveExp(Game.currAutoClickExp);
 						Game.State.stats.harvestAuto += 1;
 					} else {
+						addedWood = Math.floor(Game.currWoodHarvest * Game.currManualClickMod);
 						Game.GiveExp(Game.currClickExp);
 						Game.State.stats.harvestClick += 1;
 					}
+					
+					Game.State.wood += addedWood;
+					Game.State.stats.harvestWood += addedWood;
 					Game.nextWood = 0;
 					$("#woodProgBar").progressbar({value: 0});
 					$("#woodProgBar").addClass('disabled');
@@ -403,15 +416,19 @@ Game.Start = function() {
 				event: 'click'}, 
 				function (){
 					Game.foodBarListener.detach();
-					Game.State.food = Math.floor(Game.State.food + Game.currFoodHarvest);
-					Game.State.stats.harvestFood = Math.floor(Game.State.food + Game.currFoodHarvest);
-					if(Game.nextFood >= Game.currFoodMod*5) {
+					
+					var addedFood = 0;
+					if(Game.nextFood >= Game.currFoodMod*5*Game.currAutoSpeedMod) {
+						addedFood = Math.floor(Game.currFoodHarvest * Game.currAutoClickMod);
 						Game.GiveExp(Game.currAutoClickExp);
 						Game.State.stats.harvestAuto += 1;
 					} else {
+						addedFood = Math.floor(Game.currFoodHarvest * Game.currManualClickMod);
 						Game.GiveExp(Game.currClickExp);
 						Game.State.stats.harvestClick += 1;
 					}
+					Game.State.food += addedFood;
+					Game.State.stats.harvestFood += addedFood;
 					Game.nextFood = 0;
 					$("#foodProgBar").progressbar({value: 0});
 					$("#foodProgBar").addClass('disabled');
@@ -425,15 +442,19 @@ Game.Start = function() {
 				event: 'click'}, 
 				function (){
 					Game.stoneBarListener.detach();
-					Game.State.stone = Math.floor(Game.State.stone + Game.currStoneHarvest);
-					Game.State.stats.harvestStone = Math.floor(Game.State.stone + Game.currStoneHarvest);
-					if(Game.nextStone >= Game.currStoneMod*5) {
+					
+					var addedStone = 0;
+					if(Game.nextStone >= Game.currStoneMod*5*Game.currAutoSpeedMod) {
+						addedStone = Math.floor(Game.currStoneHarvest * Game.currAutoClickMod);
 						Game.GiveExp(Game.currAutoClickExp);
 						Game.State.stats.harvestAuto += 1;
 					} else {
+						addedStone = Math.floor(Game.currStoneHarvest * Game.currManualClickMod);
 						Game.GiveExp(Game.currClickExp);
 						Game.State.stats.harvestClick += 1;
 					}
+					Game.State.stone += addedStone;
+					Game.State.stats.harvestStone += addedStone;
 					Game.nextStone = 0;
 					$("#stoneProgBar").progressbar({value: 0});
 					$("#stoneProgBar").addClass('disabled');
@@ -562,9 +583,9 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currPopIncrease) + "<br />" +
-							"Gain/hr (Auto): " + hrFormat(Game.currPopIncrease * 3600/(Game.currPopMod*5)) + "<br />" +
-							"Gain/hr (Manual): " + hrFormat(Game.currPopIncrease * 3600/(Game.currPopMod)) + "<br />" +
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Base Gain: " + hrFormat(Game.currPopIncrease) + "<br />" +
+							"Gain/hr (Auto): " + hrFormat(Game.currPopIncrease*Game.currAutoClickMod * 3600/(Game.currPopMod*5*Game.currAutoSpeedMod)) + "<br />" +
+							"Gain/hr (Manual): " + hrFormat(Game.currPopIncrease*Game.currManualClickMod * 3600/(Game.currPopMod)) + "<br />" +
 							"Death/hr (Natural): " + hrFormat(Game.currMortalityRate * Game.State.pop * 3600/Game.currDeathTime) + "<br />");
 					});
 				}
@@ -573,9 +594,9 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currWoodHarvest) + "<br />" +
-							"Gain/hr (Auto): " + hrFormat(Game.currWoodHarvest * 3600/(Game.currWoodMod*5)) + "<br />" +
-							"Gain/hr (Manual): " + hrFormat(Game.currWoodHarvest * 3600/(Game.currWoodMod)) + "<br />");
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Base Gain: " + hrFormat(Game.currWoodHarvest) + "<br />" +
+							"Gain/hr (Auto): " + hrFormat(Game.currWoodHarvest*Game.currAutoClickMod * 3600/(Game.currWoodMod*5*Game.currAutoSpeedMod)) + "<br />" +
+							"Gain/hr (Manual): " + hrFormat(Game.currWoodHarvest*Game.currManualClickMod * 3600/(Game.currWoodMod)) + "<br />");
 					});
 				}
 			);
@@ -583,9 +604,9 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currFoodHarvest) + "<br />" +
-							"Gain/hr (Auto): " + hrFormat(Game.currFoodHarvest * 3600/(Game.currFoodMod*5)) + "<br />" +
-							"Gain/hr (Manual): " + hrFormat(Game.currFoodHarvest * 3600/(Game.currFoodMod)) + "<br />" +
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Base Gain: " + hrFormat(Game.currFoodHarvest) + "<br />" +
+							"Gain/hr (Auto): " + hrFormat(Game.currFoodHarvest*Game.currAutoClickMod * 3600/(Game.currFoodMod*5*Game.currAutoSpeedMod)) + "<br />" +
+							"Gain/hr (Manual): " + hrFormat(Game.currFoodHarvest*Game.currManualClickMod * 3600/(Game.currFoodMod)) + "<br />" +
 							"Consumed/hr: " + hrFormat(Game.currFoodConsumption * Game.State.pop * 6));
 					});
 				}
@@ -594,9 +615,9 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Gain: " + hrFormat(Game.currStoneHarvest) + "<br />" +
-							"Gain/hr (Auto): " + hrFormat(Game.currStoneHarvest * 3600/(Game.currStoneMod*5)) + "<br />" +
-							"Gain/hr (Manual): " + hrFormat(Game.currStoneHarvest * 3600/(Game.currStoneMod)) + "<br />");
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Next Base Gain: " + hrFormat(Game.currStoneHarvest) + "<br />" +
+							"Gain/hr (Auto): " + hrFormat(Game.currStoneHarvest*Game.currAutoClickMod * 3600/(Game.currStoneMod*5*Game.currAutoSpeedMod)) + "<br />" +
+							"Gain/hr (Manual): " + hrFormat(Game.currStoneHarvest*Game.currManualClickMod * 3600/(Game.currStoneMod)) + "<br />");
 					});
 				}
 			);
@@ -623,8 +644,8 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.1*Game.State.upgrades.expMultLevel+1).toFixed(1)+"x<br />" + 
-								"Next Level: "+(0.1*(Game.State.upgrades.expMultLevel+1)+1).toFixed(1)+"x<br />Cost: "+Game.currExpUpgradeCost+" Exp");
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.1*Game.State.upgrades.expMultLevel+1).toFixed(2)+"x<br />" + 
+								"Next Level: "+(0.1*(Game.State.upgrades.expMultLevel+1)+1).toFixed(2)+"x<br />Cost: "+Game.currExpUpgradeCost+" Exp");
 					});
 				}
 			);
@@ -632,8 +653,8 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.1*Game.State.upgrades.autoClickMultLevel+1).toFixed(1)+"x<br />" + 
-								"Next Level: "+(0.1*(Game.State.upgrades.autoClickMultLevel+1)+1).toFixed(1)+"x<br />Cost: "+Game.currAutoClickUpgradeCost+" Exp");
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.05*Game.State.upgrades.autoClickLevel+1).toFixed(2)+"x<br />" + 
+								"Next Level: "+(0.05*(Game.State.upgrades.autoClickLevel+1)+1).toFixed(2)+"x<br />Cost: "+Game.currAutoClickUpgradeCost+" Exp");
 					});
 				}
 			);
@@ -641,8 +662,12 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.1*Game.State.upgrades.autoSpeedMultLevel+1).toFixed(1)+"x<br />" + 
-								"Next Level: "+(0.1*(Game.State.upgrades.autoSpeedMultLevel+1)+1).toFixed(1)+"x<br />Cost: "+Game.currAutoSpeedUpgradeCost+" Exp");
+						if(Game.State.upgrades.upgradeCostLevel < 75) {
+							Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(1-0.01*Game.State.upgrades.autoSpeedLevel).toFixed(2)+"x<br />" + 
+									"Next Level: "+(1-0.01*(Game.State.upgrades.autoSpeedLevel+1)).toFixed(2)+"x<br />Cost: "+Game.currAutoSpeedUpgradeCost+" Exp");
+						} else {
+							Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(1-0.01*Game.State.upgrades.autoSpeedLevel).toFixed(2)+"x<br />Max Level Attained");
+						}
 					});
 				}
 			);
@@ -650,8 +675,8 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.1*Game.State.upgrades.manualClickMultLevel+1).toFixed(1)+"x<br />" + 
-								"Next Level: "+(0.1*(Game.State.upgrades.manualClickMultLevel+1)+1).toFixed(1)+"x<br />Cost: "+Game.currManualClickUpgradeCost+" Exp");
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.1*Game.State.upgrades.manualClickLevel+1).toFixed(2)+"x<br />" + 
+								"Next Level: "+(0.1*(Game.State.upgrades.manualClickLevel+1)+1).toFixed(2)+"x<br />Cost: "+Game.currManualClickUpgradeCost+" Exp");
 					});
 				}
 			);
@@ -659,8 +684,12 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.1*Game.State.upgrades.upgradeCostMultLevel+1).toFixed(1)+"x<br />" + 
-								"Next Level: "+(0.1*(Game.State.upgrades.upgradeCostMultLevel+1)+1).toFixed(1)+"x<br />Cost: "+Game.currUpgradeCostUpgradeCost+" Exp");
+						if(Game.State.upgrades.upgradeCostLevel < 75) {
+							Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(1-0.01*Game.State.upgrades.upgradeCostLevel).toFixed(2)+"x<br />" + 
+									"Next Level: "+(1-0.01*(Game.State.upgrades.upgradeCostLevel+1)).toFixed(2)+"x<br />Cost: "+Game.currUpgradeCostUpgradeCost+" Exp");
+						} else {
+							Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(1-0.01*Game.State.upgrades.upgradeCostLevel).toFixed(2)+"x<br />Max Level Attained");
+						}
 					});
 				}
 			);
@@ -908,11 +937,11 @@ Game.Start = function() {
 	
 	Game.ShowPopUpDiv = function(x, y, txt) {
 		e('popUpDiv').innerHTML = txt;
-		if(x+160 > screen.availWidth) {
-			x = screen.availWidth - 160 - 45;
+		if(x+160 > document.body.offsetWidth) {
+			x = document.body.offsetWidth - 160 - 15;
 		}
-		if(y+80 > screen.availHeight) {
-			y = screen.availHeight - 80 - 45;
+		if(y+80 > document.body.offsetHeight) {
+			y = document.body.offsetHeight - 80 - 15;
 		}
 		$('#popUpDiv').css('left',x+5+"px");
 		$('#popUpDiv').css('top',y+5+"px");
@@ -1219,6 +1248,11 @@ Game.Start = function() {
 	
 	Game.UpdateCalculations = function() {
 		Game.currExpMod = Game.baseExpMod + Game.State.upgrades.expMultLevel * Game.expUpgradeAmount;
+		Game.currAutoClickMod = (1+0.05*Game.State.upgrades.autoClickLevel).toFixed(2);
+		Game.currAutoSpeedMod = (1-0.01*Game.State.upgrades.autoSpeedLevel).toFixed(2);
+		Game.currManualClickMod = (1+0.1*Game.State.upgrades.manualClickLevel).toFixed(2);
+		Game.currUpgradeCostReduction = (1-0.01*Game.State.upgrades.upgradeCostLevel).toFixed(2);
+		
 		Game.currClickExp = Game.baseClickExp;
 		Game.currAutoClickExpMod = Game.baseAutoClickExpMod;
 		Game.currAutoClickExp = Game.currClickExp * Game.currAutoClickExpMod;
@@ -1248,11 +1282,11 @@ Game.Start = function() {
 		Game.currCabinWoodCost = Game.cabinWoodCost;
 		Game.currCabinStoneCost = Game.cabinStoneCost;
 		
-		Game.currExpUpgradeCost = Math.floor(Math.pow(Game.State.upgrades.expMultLevel,3) * 1.1)+100;
-		Game.currAutoClickUpgradeCost = Math.floor(Math.pow(Game.State.upgrades.autoClickMultLevel,3) * 1.3)+1000;
-		Game.currAutoSpeedUpgradeCost = Math.floor(Math.pow(Game.State.upgrades.autoSpeedMultLevel,3) * 1.5)+2500;
-		Game.currManualClickUpgradeCost = Math.floor(Math.pow(Game.State.upgrades.manualClickMultLevel,3) * 1.2)+1000;
-		Game.currUpgradeCostUpgradeCost = Math.floor(Math.pow(Game.State.upgrades.upgradeCostMultLevel,4) * 2.0)+1500;
+		Game.currExpUpgradeCost = Math.floor((Math.pow(Game.State.upgrades.expMultLevel,3) * 1.1+100)*Game.currUpgradeCostReduction);
+		Game.currAutoClickUpgradeCost = Math.floor((Math.pow(Game.State.upgrades.autoClickLevel,3) * 1.3+1000)*Game.currUpgradeCostReduction);
+		Game.currAutoSpeedUpgradeCost = Math.floor((Math.pow(Game.State.upgrades.autoSpeedLevel,3) * 1.5+2500)*Game.currUpgradeCostReduction);
+		Game.currManualClickUpgradeCost = Math.floor((Math.pow(Game.State.upgrades.manualClickLevel,3) * 1.2+1000)*Game.currUpgradeCostReduction);
+		Game.currUpgradeCostUpgradeCost = Math.floor((Math.pow(Game.State.upgrades.upgradeCostLevel,4) * 2.0+1500)*Game.currUpgradeCostReduction);
 		
 		
 		if(Game.State.houses >= 25) {
@@ -1292,6 +1326,42 @@ Game.Start = function() {
 			$("#experienceUpgrade").removeClass('enabled');
 			$("#experienceUpgrade").addClass('disabled');
 			Game.experienceUpgradeListener.detach();
+		}
+		if(Game.State.exp >= Game.currAutoClickUpgradeCost) {
+			$("#autoClickUpgrade").removeClass('disabled');
+			$("#autoClickUpgrade").addClass('enabled');
+			Game.autoClickUpgradeListener.attach();
+		} else {
+			$("#autoClickUpgrade").removeClass('enabled');
+			$("#autoClickUpgrade").addClass('disabled');
+			Game.autoClickUpgradeListener.detach();
+		}
+		if(Game.State.upgrades.autoSpeedLevel < 75 && Game.State.exp >= Game.currAutoSpeedUpgradeCost) {
+			$("#autoSpeedUpgrade").removeClass('disabled');
+			$("#autoSpeedUpgrade").addClass('enabled');
+			Game.autoSpeedUpgradeListener.attach();
+		} else {
+			$("#autoSpeedUpgrade").removeClass('enabled');
+			$("#autoSpeedUpgrade").addClass('disabled');
+			Game.autoSpeedUpgradeListener.detach();
+		}
+		if(Game.State.exp >= Game.currManualClickUpgradeCost) {
+			$("#manualClickUpgrade").removeClass('disabled');
+			$("#manualClickUpgrade").addClass('enabled');
+			Game.manualClickUpgradeListener.attach();
+		} else {
+			$("#manualClickUpgrade").removeClass('enabled');
+			$("#manualClickUpgrade").addClass('disabled');
+			Game.manualClickUpgradeListener.detach();
+		}
+		if(Game.State.upgrades.upgradeCostLevel < 75 && Game.State.exp >= Game.currUpgradeCostUpgradeCost) {
+			$("#upgradeCostUpgrade").removeClass('disabled');
+			$("#upgradeCostUpgrade").addClass('enabled');
+			Game.upgradeCostUpgradeListener.attach();
+		} else {
+			$("#upgradeCostUpgrade").removeClass('enabled');
+			$("#upgradeCostUpgrade").addClass('disabled');
+			Game.upgradeCostUpgradeListener.detach();
 		}
 	}
 	
@@ -1392,19 +1462,19 @@ Game.Start = function() {
 		//---------------------------
 		//Automatic Triggers
 		//---------------------------
-		if(Game.nextPop >= Game.currPopMod*5) {
+		if(Game.nextPop >= Game.currPopMod*5*Game.currAutoSpeedMod) {
 			Game.popBarListener.fire();
 			Game.news.push("Babies automatically harvested");
 		}
-		if(Game.nextWood >= Game.currWoodMod*5) {
+		if(Game.nextWood >= Game.currWoodMod*5*Game.currAutoSpeedMod) {
 			Game.woodBarListener.fire();
 			Game.news.push("Wood automatically chopped");
 		}
-		if(Game.nextFood >= Game.currFoodMod*5) {
+		if(Game.nextFood >= Game.currFoodMod*5*Game.currAutoSpeedMod) {
 			Game.foodBarListener.fire();
 			Game.news.push("Food automatically gathered");
 		}
-		if(Game.nextStone >= Game.currStoneMod*5) {
+		if(Game.nextStone >= Game.currStoneMod*5*Game.currAutoSpeedMod) {
 			Game.stoneBarListener.fire();
 			Game.news.push("Stones automatically rolled into storage");
 		}
