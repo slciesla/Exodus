@@ -17,12 +17,10 @@ function hrFormat(number) {
 }
 
 function hideActivityDivs() {
-	$("#mainActivityDiv").css('display', 'none');
-	$("#mainTab").removeClass('activeTab');
-	$("#buildingsActivityDiv").css('display', 'none');
-	$("#buildingsTab").removeClass('activeTab');
-	$("#upgradesActivityDiv").css('display', 'none');
-	$("#upgradesTab").removeClass('activeTab');
+	for(var i=0; i!=Game.tabs.length; i++) {
+		$("#"+Game.tabs[i].name+"TabActivityDiv").css('display', 'none');
+		$("#"+Game.tabs[i].name+"Tab").removeClass('activeTab');
+	}
 }
 
 //---------------------------
@@ -83,7 +81,7 @@ Game.Start = function() {
 			Game.baseAsteroidClickExp = 2;
 			Game.baseAsteroidExhaustExp = 10;
 			Game.baseAsteroidStone = 1;
-			Game.expUpgradeAmount = 0.1;
+			Game.expUpgradeAmount = 0.05;
 			Game.baseMortalityRate = 0.01;
 			Game.baseDeathTime = 120; //Every 2 min people die
 			
@@ -119,7 +117,9 @@ Game.Start = function() {
 			Game.State.stone = 0;
 			Game.State.timeToEat = 0;
 			Game.State.timeToDeath = 0;
+			Game.State.era = 0;
 			Game.State.planet = {};
+			Game.State.achievements = {};
 			//Sliders
 			Game.State.range = {};
 			Game.State.range.pop = 150;
@@ -147,6 +147,7 @@ Game.Start = function() {
 			Game.State.stats.asteroidFreeStone = 0;
 			Game.State.stats.upgradesBought = 0;
 			Game.State.stats.naturalDeaths = 0;
+			Game.State.stats.erasVisited = 0;
 			//Upgrades
 			Game.State.upgrades = {};
 			Game.State.upgrades.expMultLevel = 0;
@@ -154,6 +155,46 @@ Game.Start = function() {
 			Game.State.upgrades.autoSpeedLevel = 0;
 			Game.State.upgrades.manualClickLevel = 0;
 			Game.State.upgrades.upgradeCostLevel = 0;
+			//Prestige Stuff
+			Game.State.prestige = {};
+			
+			//Era's
+			Game.era = Array();
+			Game.era[0] = {
+				name: 'Stone Age',
+				maxPopulation: 10000,
+				neededPop: 6000,
+				cost: {
+					food: 10000,
+					wood: 5000,
+					stone: 1000
+				}
+			};
+			Game.era[1] = {
+				name: 'Metal Age',
+				maxPopulation: 100000,
+				neededPop: 75000,
+				cost: {}
+			};
+			
+			//Game Tabs
+			Game.tabs = Array();
+			Game.tabButtonListener = Array();
+			Game.tabs[0] = {
+				name: "harvests"
+			};
+			Game.tabs[1] = {
+				name: "buildings"
+			};
+			Game.tabs[2] = {
+				name: "upgrades"
+			};
+			Game.tabs[3] = {
+				name: "research"
+			};
+			Game.tabs[4] = {
+				name: "mining"
+			};
 			
 			//---------------------------
 			//Load the Game
@@ -176,13 +217,29 @@ Game.Start = function() {
 					Game.UpdateCheck();
 				}
 			);
+			Game.menuButtonListener = snack.listener({node: document.getElementById('menuButton'),
+				event: 'click'}, 
+				function (){
+					$("#newsDiv").html("");
+					var txt = "<h3>MENU:</h3>";
+					txt += "Save Game State (copy this and save it somewhere safe):<br />";
+					txt += Game.ExportSave();
+					$("#newsDiv").html(txt);
+					$("#newsDiv").toggleClass('hiddenDiv');
+					$("#overlay").toggleClass('hiddenDiv');
+				}
+			);
 			Game.changeLogButtonListener = snack.listener({node: document.getElementById('changeLogButton'),
 				event: 'click'}, 
 				function (){
 					$("#newsDiv").html("");
 					var txt = "<h3>CHANGE LOG:</h3>\
+						2014.04.23:&nbsp;&nbsp;&nbsp;Beta v0.2.1<br />\
+						Added Eras, Research, & Mining<br />\
+						<br />\
 						2014.03.30:&nbsp;&nbsp;&nbsp;Beta v0.2.0.1<br />\
 						Fixed some bugs with the click gather modifiers<br />\
+						<br />\
 						2014.03.30:&nbsp;&nbsp;&nbsp;Beta v0.2.0.0<br />\
 						The Big Beta v0.2!<br />\
 						New, more spacey color scheme! (Coming soon, option to change color schemes)<br />\
@@ -315,6 +372,40 @@ Game.Start = function() {
 					$("#overlay").toggleClass('hiddenDiv');
 				}
 			);
+			Game.achievementButtonListener = snack.listener({node: document.getElementById('achievementsButton'),
+				event: 'click'}, 
+				function (){
+					$("#newsDiv").html("");
+					var chievos = Game.State.achievements.chievos;
+					var ndx = Game.State.achievements.chievoList;
+					var achieved = Game.State.achievements.achieved;
+					var txt = "<h3>ACHIEVEMENTS:</h3>";
+					for(var i=0; i!= ndx.length; i++) {
+						txt += "<div class='chievo";
+						if($.inArray(ndx[i], achieved) != -1) {
+							txt += " achieved' style=\"background-image: url('images/"+chievos[ndx[i]].image+"');\"";
+						} else if(chievos[ndx[i]].hidden) {
+							txt += " hiddenChievo'";
+						} else {
+							txt += "'";
+						}
+						txt += "></div>";
+					}
+					$("#newsDiv").html(txt);
+					$("#newsDiv").toggleClass('hiddenDiv');
+					$("#overlay").toggleClass('hiddenDiv');
+				}
+			);
+			Game.alertButtonListener = snack.listener({node: document.getElementById('alertButton'),
+				event: 'click'}, 
+				function (){
+					$("#newsDiv").html("");
+					var txt = "<h3>Coming Soon!</h3>";
+					$("#newsDiv").html(txt);
+					$("#newsDiv").toggleClass('hiddenDiv');
+					$("#overlay").toggleClass('hiddenDiv');
+				}
+			);
 			Game.overlayListener = snack.listener({node: document.getElementById('overlay'),
 				event: 'click'}, 
 				function (){
@@ -323,29 +414,18 @@ Game.Start = function() {
 				}
 			);
 			
-			//Game Tabs - Click
-			Game.mainTabButtonListener = snack.listener({node: document.getElementById('mainTab'),
-				event: 'click'}, 
-				function (){
-					hideActivityDivs();
-					$("#mainActivityDiv").css('display', 'block');
-					$("#mainTab").addClass('activeTab');
+			//Game Tabs Setup
+			for(var i=0; i!=Game.tabs.length; i++) {
+				$('#headerTabs').append("<div id='"+Game.tabs[i].name+"Tab' class='headerTab'>"+Game.tabs[i].name.toUpperCase()+"</div>");
+				if(i==0) {
+					$("#"+Game.tabs[i].name+"Tab").addClass('activeTab');
 				}
-			);
-			Game.buildingsTabButtonListener = snack.listener({node: document.getElementById('buildingsTab'),
-				event: 'click'}, 
-				function (){
+			}
+			$("#headerTabs .headerTab").bind("click",
+				function(e) {
 					hideActivityDivs();
-					$("#buildingsActivityDiv").css('display', 'block');
-					$("#buildingsTab").addClass('activeTab');
-				}
-			);
-			Game.upgradesTabButtonListener = snack.listener({node: document.getElementById('upgradesTab'),
-				event: 'click'}, 
-				function (){
-					hideActivityDivs();
-					$("#upgradesActivityDiv").css('display', 'block');
-					$("#upgradesTab").addClass('activeTab');
+					$('#'+this.id+"ActivityDiv").css('display', 'block');
+					$('#'+this.id).addClass('activeTab');
 				}
 			);
 			
@@ -644,8 +724,8 @@ Game.Start = function() {
 				event: 'mouseover'}, 
 				function(evt){
 					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(0.1*Game.State.upgrades.expMultLevel+1).toFixed(2)+"x<br />" + 
-								"Next Level: "+(0.1*(Game.State.upgrades.expMultLevel+1)+1).toFixed(2)+"x<br />Cost: "+Game.currExpUpgradeCost+" Exp");
+						Game.ShowPopUpDiv(event.pageX, event.pageY, "Current Level: "+(Game.expUpgradeAmount*Game.State.upgrades.expMultLevel+1).toFixed(2)+"x<br />" + 
+								"Next Level: "+(Game.expUpgradeAmount*(Game.State.upgrades.expMultLevel+1)+1).toFixed(2)+"x<br />Cost: "+Game.currExpUpgradeCost+" Exp");
 					});
 				}
 			);
@@ -701,105 +781,10 @@ Game.Start = function() {
 					});
 				}
 			);
-			Game.achOverListener = snack.listener({node: document.getElementById('achievementsButton'),
-				event: 'mouseover'}, 
-				function(evt){
-					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Coming Soon!");
-					});
-				}
-			);
-			Game.alertOverListener = snack.listener({node: document.getElementById('alertButton'),
-				event: 'mouseover'}, 
-				function(evt){
-					$(this).mousemove(function(event){
-						Game.ShowPopUpDiv(event.pageX, event.pageY, "Coming Soon!");
-					});
-				}
-			);
 			
 			//Game Buttons - On mouseout
-			Game.popBarOutListener = snack.listener({node: document.getElementById('popProgBar'),
-				event: 'mouseout'}, 
-				function(){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.woodBarOutListener = snack.listener({node: document.getElementById('woodProgBar'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.foodBarOutListener = snack.listener({node: document.getElementById('foodProgBar'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.stoneBarOutListener = snack.listener({node: document.getElementById('stoneProgBar'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.houseButtonOutListener = snack.listener({node: document.getElementById('houseButton'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.cabinButtonOutListener = snack.listener({node: document.getElementById('cabinButton'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.experienceUpgradeOutListener = snack.listener({node: document.getElementById('experienceUpgrade'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.autoClickUpgradeOutListener = snack.listener({node: document.getElementById('autoClickUpgrade'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.autoSpeedUpgradeOutListener = snack.listener({node: document.getElementById('autoSpeedUpgrade'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.manualClickUpgradeOutListener = snack.listener({node: document.getElementById('manualClickUpgrade'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.upgradeCostUpgradeOutListener = snack.listener({node: document.getElementById('upgradeCostUpgrade'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.eraUpgradeOutListener = snack.listener({node: document.getElementById('eraUpgrade'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.achOutListener = snack.listener({node: document.getElementById('achievementsButton'),
-				event: 'mouseout'}, 
-				function(evt){
-					Game.HidePopUpDiv();
-				}
-			);
-			Game.alertOutListener = snack.listener({node: document.getElementById('alertButton'),
-				event: 'mouseout'}, 
-				function(evt){
+			$(".activityDiv .gameButton").bind("mouseout",
+				function(e) {
 					Game.HidePopUpDiv();
 				}
 			);
@@ -810,15 +795,27 @@ Game.Start = function() {
 				function(evt){
 					switch(evt.charCode){
 						case 49: {
-							Game.mainTabButtonListener.fire();
+							$("#"+Game.tabs[0].name+"Tab").click();
 							break;
 						}
 						case 50: {
-							Game.buildingsTabButtonListener.fire();
+							$("#"+Game.tabs[1].name+"Tab").click();
 							break;
 						}
 						case 51: {
-							Game.upgradesTabButtonListener.fire();
+							$("#"+Game.tabs[2].name+"Tab").click();
+							break;
+						}
+						case 52: {
+							if(Game.State.era > 0) {
+							$("#"+Game.tabs[3].name+"Tab").click();
+							}
+							break;
+						}
+						case 53: {
+							if(Game.State.era > 0) {
+							$("#"+Game.tabs[4].name+"Tab").click();
+							}
 							break;
 						}
 						default: {
@@ -962,7 +959,9 @@ Game.Start = function() {
 	//---------------------------
 	Game.NewGame = function() {
 		Game.newGame = true;
+		Game.State.achievements = new Achievements();
 		$('#baseTab').css('display','none');
+		$('#headerTabs').css('display','none');
 		$('#intro').html('<br />You are the leader of one of many colony ships that left Earth many years \
 		ago. Your ships scanners have finally found what could be your new home. Your ship is the first \
 		to reach its destination so you have little experience or knowledge of what is to come. You must \
@@ -983,6 +982,7 @@ Game.Start = function() {
 			function (){
 				Game.State.planet = planet1;
 				$('#baseTab').css('display','block');
+				$('#headerTabs').css('display','block');
 				$('#intro').css('display','none');
 				Game.newGame = false;
 				Game.Loop();
@@ -993,6 +993,7 @@ Game.Start = function() {
 			function (){
 				Game.State.planet = planet2;
 				$('#baseTab').css('display','block');
+				$('#headerTabs').css('display','block');
 				$('#intro').css('display','none');
 				Game.newGame = false;
 				Game.Loop();
@@ -1014,6 +1015,8 @@ Game.Start = function() {
 				Game.newGame = false;
 				var tmpPlanet = new Planet(true);
 				Game.State.planet = tmpPlanet.LoadPlanet(Game.State.planet);
+				var tmpChievo = new Achievements();
+				Game.State.achievements = tmpChievo.LoadAchievements(Game.State.achievements);
 			} else {
 				Game.news.push("No Saved Game Found");
 				Game.NewGame();
@@ -1032,16 +1035,22 @@ Game.Start = function() {
 	//---------------------------
 	//Save the Game
 	//---------------------------
-	/*Game.ExportSave=function()
-	{
-		var save=prompt('Copy this text and keep it somewhere safe!',Game.WriteSave(1));
+	Game.EncryptSave = function(str) {
+		return str>>2;
 	}
-	Game.ImportSave=function()
-	{
-		var save=prompt('Please paste in the text that was given to you on save export.','');
-		if (save && save!='') Game.LoadSave(save);
-		Game.WriteSave();
-	}*/
+	Game.ExportSave = function() {
+		return JSON.stringify(Game.State, Game.EncryptSave);
+	}
+	Game.DecryptSave = function(str) {
+		return str<<2;
+	}
+	Game.ImportSave = function() {
+		var save = prompt('Please paste in the text that was given to you on save export.','');
+		if (save && save!='') {
+			Game.State = JSON.parse(save, Game.DecryptSave);
+		}
+		Game.SaveGame();
+	}
 	
 	Game.SaveGame = function() {
 		Game.UpdateCalculations();
@@ -1058,6 +1067,7 @@ Game.Start = function() {
 			Game.WriteBreakingNews(Game.newsId);
 			Game.newsId = Game.news.length;
 		}
+		e('eraName').innerHTML = "Era: " + Game.era[Game.State.era].name;
 		e('experience').innerHTML = "Experience: " + (Game.State.exp).toFixed(1);
 		e('population').innerHTML = "Population: " + hrFormat(Game.State.pop) + " / " + hrFormat(Game.currMaxPop);
 		e('idlePop').innerHTML = "Idle Pop: " + hrFormat(Game.currIdlePop < 0 ? 0 : Game.currIdlePop);
@@ -1239,13 +1249,6 @@ Game.Start = function() {
 			- $("#woodSlider").slider("option", "value") - $("#stoneSlider").slider("option", "value");
 	}
 	
-	Game.UpdateButtons = function() {
-		//House
-		
-		//Cabin
-		
-	}
-	
 	Game.UpdateCalculations = function() {
 		Game.currExpMod = Game.baseExpMod + Game.State.upgrades.expMultLevel * Game.expUpgradeAmount;
 		Game.currAutoClickMod = (1+0.05*Game.State.upgrades.autoClickLevel).toFixed(2);
@@ -1294,8 +1297,20 @@ Game.Start = function() {
 		}
 	};
 	
-	Game.EvaluateCosts = function() {
-		Game.UpdateCalculations();
+	Game.CheckEras = function() {
+		if(Game.State.era > 0) {
+			$('#researchTab').css('display','block');
+		} else {
+			$('#researchTab').css('display','none');
+		}
+		if(Game.State.era > 1) {
+			$('#miningTab').css('display','block');
+		} else {
+			$('#miningTab').css('display','none');
+		}
+	}
+	
+	Game.UpdateButtons = function() {
 		//House Button
 		if(Game.State.wood >= Game.currHouseWoodCost) {
 			$("#houseButton").removeClass('disabled');
@@ -1317,6 +1332,9 @@ Game.Start = function() {
 			$("#cabinButton").addClass('disabled');
 			Game.cabinBtnListener.detach();
 		}
+	}
+	
+	Game.UpdateUpgrades = function() {
 		//Upgrade Buttons
 		if(Game.State.exp >= Game.currExpUpgradeCost) {
 			$("#experienceUpgrade").removeClass('disabled');
@@ -1363,6 +1381,13 @@ Game.Start = function() {
 			$("#upgradeCostUpgrade").addClass('disabled');
 			Game.upgradeCostUpgradeListener.detach();
 		}
+	}
+	
+	Game.EvaluateCosts = function() {
+		Game.UpdateCalculations();
+		Game.CheckEras();
+		Game.UpdateButtons();
+		Game.UpdateUpgrades();
 	}
 	
 	Game.GiveExp = function(exp) {

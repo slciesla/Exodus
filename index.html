@@ -17,16 +17,17 @@
 <script src='libs/jQuery/jquery-1.10.2.min.js'></script>
 <script src='libs/jQuery-ui/ui/minified/jquery-ui.min.js'></script>
 <script src='js/seedrandom.js'></script>
-<script src='js/Utility.js'></script>
-<script src='js/Planet.js'></script>
-<script src='js/Game.js'></script>
+<script src='js/Utility.js?ver=1.0'></script>
+<script src='js/Planet.js?ver=1.0'></script>
+<script src='js/Achievements.js?ver=1.0'></script>
+<script src='js/Game.js?ver=0.2.0.1'></script>
 
 <!--
  Font from http://www.google.com/fonts/specimen/Roboto+Slab
  -->
 <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="libs/jQuery-ui/themes/base/jquery-ui.css" />
-<link rel="stylesheet" href="css/Game.css" />
+<link rel="stylesheet" href="css/Game.css?ver=0.2.0.1" />
 
 </head>
 <body id='body'>
@@ -47,17 +48,13 @@
 			<div id='achievementsButton' class='headerButton'>Achievements</div>
 		</div>
 		<div id='headerTabs'>
-			<div id='mainTab' class='headerTab activeTab'>HARVESTS</div>
-			<div id='buildingsTab' class='headerTab'>BUILDINGS</div>
-			<div id='upgradesTab' class='headerTab'>UPGRADES</div>
-			<div id='miningTab' class='headerTab' style='display: none'>SECRET</div>
-			<div id='researchTab' class='headerTab' style='display: none'>SECRET</div>
 		</div>
 		<div style='clear: both; height: 6px;'></div>
 		<div>
 			<div id='intro'></div>
 			<div id='baseTab'>
 				<div id='infoDiv'>
+					<div id='eraName' style='font-weight:bold;text-decoration:underline;'>NA</div>
 					<div id='experience'>0</div>
 					<div id='population'>0</div>
 					<div id='idlePop'>0</div>
@@ -67,68 +64,79 @@
 					<div id='houses'>0</div>
 					<div id='cabins'></div>
 				</div>
-				<div id='mainActivityDiv' class='activityDiv' style="width: 120px">
-					<div id="popProgBar" class='ui-progressbar disabled'>
+				<div id='harvestsTabActivityDiv' class='activityDiv' style="width: 120px">
+					<div id="popProgBar" class='gameButton ui-progressbar disabled'>
 						<div class="progress-label" id='popProgBarLabel'>Make Babies</div>
 					</div>
 					<div id="popSlider"></div>
 					<div id="popRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
-					<div id="foodProgBar" class='ui-progressbar disabled'>
+					<div id="foodProgBar" class='gameButton ui-progressbar disabled'>
 						<div class="progress-label" id='foodProgBarLabel'>Gather Food</div>
 					</div>
 					<div id="foodSlider"></div>
 					<div id="foodRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
-					<div id="woodProgBar" class='ui-progressbar disabled'>
+					<div id="woodProgBar" class='gameButton ui-progressbar disabled'>
 						<div class="progress-label" id='woodProgBarLabel'>Harvest Wood</div>
 					</div>
 					<div id="woodSlider"></div>
 					<div id="woodRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
-					<div id="stoneProgBar" class='ui-progressbar disabled'>
+					<div id="stoneProgBar" class='gameButton ui-progressbar disabled'>
 						<div class="progress-label" id='stoneProgBarLabel'>Pick Up Stones</div>
 					</div>
 					<div id="stoneSlider"></div>
 					<div id="stoneRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
 				</div>
-				<div id='buildingsActivityDiv' class='activityDiv' style="width: 120px; display: none;">
-					<div id="houseButton" class='gameButton disabled'>
+				<div id='buildingsTabActivityDiv' class='activityDiv' style="width: 120px; display: none;">
+					<div id="houseButton" class='gameButton gameButtonStyle disabled'>
 						<div class="progress-label">Build House</div>
 					</div>
-					<div id="cabinButton" class='gameButton disabled' style='display: none'>
+					<div id="cabinButton" class='gameButton gameButtonStyle disabled' style='display: none'>
 						<div class="progress-label">Build Cabin</div>
 					</div>
 				</div>
-				<div id='upgradesActivityDiv' class='activityDiv' style="width: 120px; display: none;">
-					<div id="experienceUpgrade" class='gameButton disabled'>
+				<div id='upgradesTabActivityDiv' class='activityDiv' style="width: 120px; display: none;">
+					<div id="experienceUpgrade" class='gameButton gameButtonStyle disabled'>
 						<div class="progress-label">EXP Gain</div>
 					</div>
-					<div id="autoClickUpgrade" class='gameButton disabled'>
+					<div id="autoClickUpgrade" class='gameButton gameButtonStyle disabled'>
 						<div class="progress-label">Auto Click Gain</div>
 					</div>
-					<div id="autoSpeedUpgrade" class='gameButton disabled'>
+					<div id="autoSpeedUpgrade" class='gameButton gameButtonStyle disabled'>
 						<div class="progress-label">Auto Click Speed</div>
 					</div>
-					<div id="manualClickUpgrade" class='gameButton disabled'>
+					<div id="manualClickUpgrade" class='gameButton gameButtonStyle disabled'>
 						<div class="progress-label">Click Gain</div>
 					</div>
-					<div id="upgradeCostUpgrade" class='gameButton disabled'>
+					<div id="upgradeCostUpgrade" class='gameButton gameButtonStyle disabled'>
 						<div class="progress-label">Upgrades Cost</div>
 					</div>
-					<div id="eraUpgrade" class='gameButton disabled'>
+					<div id="eraUpgrade" class='gameButton gameButtonStyle disabled'>
 						<div class="progress-label">Next Era</div>
 					</div>
 				</div>
-				<div id='miningActivityDiv' class='activityDiv' style="width: 120px; display: none;">
+				<div id='researchTabActivityDiv' class='activityDiv' style="width: 120px; display: none;">
+					<div id="farmingResearch" class='gameButton gameButtonStyle disabled'>
+						<div class="progress-label">Farming</div>
+					</div>
+					<div id="miningResearch" class='gameButton gameButtonStyle disabled'>
+						<div class="progress-label">Mining</div>
+					</div>
+				</div>
+				<div id='miningTabActivityDiv' class='activityDiv' style="width: 120px; display: none;">
+					Coming Soon
 				</div>
 			</div>
 		</div>
 		<div id='extrasDiv'>
-		<div id='newsDiv' class='alertDiv hiddenDiv'></div></div>
+			<div id='newsDiv' class='alertDiv hiddenDiv'></div>
+		</div>
 	</div>
 	<div id='footer'>
 		<div id='version' class='footerItem'></div>
-		<div class='footerItem'>Forums</div>
-		<div class='footerItem'>Wiki</div>
-		<div class='footerItem'>&copy;2013</div>
+		<div class='footerItem' style='display: none;'>Forums</div>
+		<div class='footerItem' style='display: none;'>Wiki</div>
+		<div class='footerItem' style='display: none;'>Subreddit</div>
+		<div class='footerItem'>&copy;2013-2014</div>
 	</div>
 </body>
 </html>

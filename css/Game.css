@@ -163,7 +163,7 @@ h3 {
 .enabled {
 }
 
-.gameButton {
+.gameButtonStyle {
 	color: #222;
 	border: 1px solid #AAA;
 	border-radius: 4px;
@@ -268,4 +268,25 @@ h3 {
 	position: absolute;
 	top: 80px;
 	right: 0px;
+}
+
+.chievo {
+	width: 75px;
+	height: 75px;
+	float: left;
+	margin: 3px;
+	border: 2px solid green;
+	background-image: url('images/missing_chievo.png');
+	background-size: contain;
+	background-repeat: no-repeat;
+	opacity: 0.5;
+}
+
+.hiddenChievo {
+	background-color: grey;
+}
+
+.achieved {
+	background-color: yellow;
+	opacity: 1.0;
 }
