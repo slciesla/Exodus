@@ -11,7 +11,7 @@ function e(item) {return document.getElementById(item);}
 
 function hrFormat(number) {
 	number = number < 1 && number > 0 ? 1 : number;
-    var s = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
+    var s = ['', 'k', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
     var e = Math.floor(Math.log(number) / Math.log(1000));
 	return number < 1000 ? Math.floor(number) : ((number / Math.pow(1000, e)).toFixed(2) + " " + s[e]);
 }
@@ -42,7 +42,7 @@ Game.Start = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Game.version = 'Beta v0.2.0.1';
+			Game.version = 'Beta v0.2.1.0';
 			Game.initialized = 1;
 			Game.newGame = true;
 			Game.fps = 30;
@@ -146,6 +146,7 @@ Game.Start = function() {
 			Game.State.stats.asteroidWoodKills = 0;
 			Game.State.stats.asteroidFreeStone = 0;
 			Game.State.stats.upgradesBought = 0;
+			Game.State.stats.buildings = 0;
 			Game.State.stats.naturalDeaths = 0;
 			Game.State.stats.erasVisited = 0;
 			//Upgrades
@@ -234,8 +235,9 @@ Game.Start = function() {
 				function (){
 					$("#newsDiv").html("");
 					var txt = "<h3>CHANGE LOG:</h3>\
-						2014.04.23:&nbsp;&nbsp;&nbsp;Beta v0.2.1<br />\
-						Added Eras, Research, & Mining<br />\
+						2014.04.23:&nbsp;&nbsp;&nbsp;Beta v0.2.1.0<br />\
+						Added achievements & some stuff behind the scenes<br />\
+						Reduced amount of exp each exp gain update gives from 10% to 5%<br />\
 						<br />\
 						2014.03.30:&nbsp;&nbsp;&nbsp;Beta v0.2.0.1<br />\
 						Fixed some bugs with the click gather modifiers<br />\
@@ -365,7 +367,8 @@ Game.Start = function() {
 						txt += "Free Stone from Asteroid: " + hrFormat(Game.State.stats.asteroidFreeStone) + "<br />";
 					}
 					txt += "Natural Deaths: " + hrFormat(Game.State.stats.naturalDeaths) + "<br />" + 
-						"Upgrades Purchased: " + hrFormat(Game.State.stats.upgradesBought);
+						"Upgrades Purchased: " + hrFormat(Game.State.stats.upgradesBought) + "<br />" + 
+						"Buildings Built: " + hrFormat(Game.State.stats.buildings);
 						
 					$("#newsDiv").html(txt);
 					$("#newsDiv").toggleClass('hiddenDiv');
@@ -380,16 +383,19 @@ Game.Start = function() {
 					var ndx = Game.State.achievements.chievoList;
 					var achieved = Game.State.achievements.achieved;
 					var txt = "<h3>ACHIEVEMENTS:</h3>";
+					txt += achieved.length+"/"+ndx.length+" achieved";
 					for(var i=0; i!= ndx.length; i++) {
-						txt += "<div class='chievo";
+						//Achieved
 						if($.inArray(ndx[i], achieved) != -1) {
-							txt += " achieved' style=\"background-image: url('images/"+chievos[ndx[i]].image+"');\"";
+							//txt += " achieved' style=\"background-image: url('images/"+chievos[ndx[i]].image+"');\"";
+							txt += "<div class='chievo achieved'><span class='chievoName'>"+chievos[ndx[i]].name+": </span>"+chievos[ndx[i]].desc+"</div>";
+						//Hidden
 						} else if(chievos[ndx[i]].hidden) {
-							txt += " hiddenChievo'";
+							txt += "<div class='chievo hiddenChievo'><span class='chievoName'>HIDDEN: </span>???</div>";
+						//Normal, unachieved
 						} else {
-							txt += "'";
+							txt += "<div class='chievo'><span class='chievoName'>"+chievos[ndx[i]].name+": </span>"+chievos[ndx[i]].beforeDesc+"</div>";
 						}
-						txt += "></div>";
 					}
 					$("#newsDiv").html(txt);
 					$("#newsDiv").toggleClass('hiddenDiv');
@@ -551,6 +557,7 @@ Game.Start = function() {
 					Game.houseBtnListener.detach();
 					Game.State.houses += 1;
 					Game.State.wood -= Game.currHouseWoodCost;
+					Game.State.stats.buildings++;
 					Game.EvaluateCosts();
 					$("#houseButton").addClass('disabled');
 					$("#houseButton").removeClass('enabled');
@@ -567,6 +574,7 @@ Game.Start = function() {
 					Game.State.cabins += 1;
 					Game.State.wood -= Game.cabinWoodCost;
 					Game.State.stone -= Game.cabinStoneCost;
+					Game.State.stats.buildings++;
 					Game.EvaluateCosts();
 					$("#cabinButton").addClass('disabled');
 					$("#cabinButton").removeClass('enabled');
@@ -1390,6 +1398,229 @@ Game.Start = function() {
 		Game.UpdateUpgrades();
 	}
 	
+	Game.CheckChievos = function() {
+		achieved = Game.State.achievements.achieved;
+		//Manual Harvests
+		if(Game.State.stats.harvestClick >= 5000) {
+			if($.inArray(4, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(4);
+			}
+		}
+		if(Game.State.stats.harvestClick >= 1000) {
+			if($.inArray(3, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(3);
+			}
+		}
+		if(Game.State.stats.harvestClick >= 100) {
+			if($.inArray(2, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(2);
+			}
+		}
+		if(Game.State.stats.harvestClick >= 10) {
+			if($.inArray(1, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(1);
+			}
+		} 
+		if(Game.State.stats.harvestClick >= 1) {
+			if($.inArray(0, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(0);
+			}
+		}
+		
+		//Auto Harvests
+		if(Game.State.stats.harvestAuto >= 5000) {
+			if($.inArray(14, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(14);
+			}
+		} 
+		if(Game.State.stats.harvestAuto >= 1000) {
+			if($.inArray(13, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(13);
+			}
+		} 
+		if(Game.State.stats.harvestAuto >= 100) {
+			if($.inArray(12, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(12);
+			}
+		} 
+		if(Game.State.stats.harvestAuto >= 10) {
+			if($.inArray(11, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(11);
+			}
+		} 
+		if(Game.State.stats.harvestAuto >= 1) {
+			if($.inArray(10, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(10);
+			}
+		}
+		
+		//Population Harvest
+		if(Game.State.stats.harvestPop >= 1000000000000) {
+			if($.inArray(104, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(104);
+			}
+		} 
+		if(Game.State.stats.harvestPop >= 1000000000) {
+			if($.inArray(103, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(103);
+			}
+		} 
+		if(Game.State.stats.harvestPop >= 1000000) {
+			if($.inArray(102, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(102);
+			}
+		} 
+		if(Game.State.stats.harvestPop >= 1000) {
+			if($.inArray(101, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(101);
+			}
+		} 
+		if(Game.State.stats.harvestPop >= 1) {
+			if($.inArray(100, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(100);
+			}
+		}
+		
+		//Food Harvest
+		if(Game.State.stats.harvestFood >= 1000000000000) {
+			if($.inArray(154, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(154);
+			}
+		} 
+		if(Game.State.stats.harvestFood >= 1000000000) {
+			if($.inArray(153, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(153);
+			}
+		} 
+		if(Game.State.stats.harvestFood >= 1000000) {
+			if($.inArray(152, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(152);
+			}
+		} 
+		if(Game.State.stats.harvestFood >= 1000) {
+			if($.inArray(151, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(151);
+			}
+		} 
+		if(Game.State.stats.harvestFood >= 1) {
+			if($.inArray(150, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(150);
+			}
+		}
+		
+		//Wood Harvest
+		if(Game.State.stats.harvestWood >= 1000000000000) {
+			if($.inArray(204, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(204);
+			}
+		} 
+		if(Game.State.stats.harvestWood >= 1000000000) {
+			if($.inArray(203, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(203);
+			}
+		} 
+		if(Game.State.stats.harvestWood >= 1000000) {
+			if($.inArray(202, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(202);
+			}
+		} 
+		if(Game.State.stats.harvestWood >= 1000) {
+			if($.inArray(201, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(201);
+			}
+		} 
+		if(Game.State.stats.harvestWood >= 1) {
+			if($.inArray(200, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(200);
+			}
+		}
+		
+		//Stone Harvest
+		if(Game.State.stats.harvestStone >= 1000000000000) {
+			if($.inArray(254, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(254);
+			}
+		} 
+		if(Game.State.stats.harvestStone >= 1000000000) {
+			if($.inArray(253, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(253);
+			}
+		} 
+		if(Game.State.stats.harvestStone >= 1000000) {
+			if($.inArray(252, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(252);
+			}
+		} 
+		if(Game.State.stats.harvestStone >= 1000) {
+			if($.inArray(251, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(251);
+			}
+		} 
+		if(Game.State.stats.harvestStone >= 1) {
+			if($.inArray(250, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(250);
+			}
+		}
+		
+		//TO REMOVE
+		if(Game.State.stats.buildings == 0){
+			Game.State.stats.buildings = Game.State.cabins + Game.State.houses;
+		}
+		//Buildings
+		if(Game.State.stats.buildings >= 500) {
+			if($.inArray(304, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(304);
+			}
+		} 
+		if(Game.State.stats.buildings >= 100) {
+			if($.inArray(303, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(303);
+			}
+		} 
+		if(Game.State.stats.buildings >= 50) {
+			if($.inArray(302, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(302);
+			}
+		} 
+		if(Game.State.stats.buildings >= 10) {
+			if($.inArray(301, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(301);
+			}
+		} 
+		if(Game.State.stats.buildings >= 1) {
+			if($.inArray(300, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(300);
+			}
+		}
+		
+		//Upgrades
+		if(Game.State.stats.upgradesBought >= 500) {
+			if($.inArray(354, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(354);
+			}
+		} 
+		if(Game.State.stats.upgradesBought >= 100) {
+			if($.inArray(353, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(353);
+			}
+		} 
+		if(Game.State.stats.upgradesBought >= 50) {
+			if($.inArray(352, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(352);
+			}
+		} 
+		if(Game.State.stats.upgradesBought >= 10) {
+			if($.inArray(351, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(351);
+			}
+		} 
+		if(Game.State.stats.upgradesBought >= 1) {
+			if($.inArray(350, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(350);
+			}
+		}
+	}
+	
 	Game.GiveExp = function(exp) {
 		Game.State.exp += exp * Game.currExpMod;
 		Game.State.stats.expGained += exp * Game.currExpMod;
@@ -1400,6 +1631,7 @@ Game.Start = function() {
 	//---------------------------
 	Game.Logic = function() {
 		Game.EvaluateCosts();
+		Game.CheckChievos();
 		
 		//Timers
 		//Sliders Update

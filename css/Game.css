@@ -38,6 +38,38 @@ h3 {
 	z-index: 100;
 }
 
+#toaster {
+	position: fixed;
+	width: 250px;
+	left: 50%;
+	bottom: 5px;
+	margin-left: -128px;
+	z-index: 4;
+}
+
+.toastDiv {
+	width: 250px;
+	background-color: #1B1B1B;
+	border: 3px solid green;
+	padding: 3px;
+	margin-bottom: 5px;
+}
+
+.toastHeader {
+	line-height: 1.5em;
+	text-align: center; 
+	font-weight: bold;
+}
+
+.toastChievo {
+	text-decoration: underline;
+}
+
+.toastDesc {
+	font-size: 0.8em; 
+	color: #090;
+}
+
 #breakingNews {
 	width: 400px;
 	position: absolute;
@@ -271,22 +303,30 @@ h3 {
 }
 
 .chievo {
-	width: 75px;
-	height: 75px;
+	width: 98%;
+	height: 30px;
+	line-height: 30px;
+	padding-left: 4px;
 	float: left;
 	margin: 3px;
-	border: 2px solid green;
-	background-image: url('images/missing_chievo.png');
+	border: 2px solid #777;
 	background-size: contain;
-	background-repeat: no-repeat;
 	opacity: 0.5;
+	background-color: #333;
+	color: #999;
 }
 
 .hiddenChievo {
-	background-color: grey;
 }
 
 .achieved {
-	background-color: yellow;
 	opacity: 1.0;
+	color: #FFF;
+	background-color: #111;
+	border: 2px solid green;
+}
+
+.chievoName {
+	font-weight: bold;
+	color: lime;
 }
