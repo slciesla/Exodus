@@ -19,15 +19,16 @@
 <script src='js/seedrandom.js'></script>
 <script src='js/Utility.js?ver=1.0'></script>
 <script src='js/Planet.js?ver=1.0'></script>
-<script src='js/Achievements.js?ver=1.1'></script>
-<script src='js/Game.js?ver=0.2.1.0'></script>
+<script src='js/Achievements.js?ver=1.2'></script>
+<script src='js/Powers.js?ver=0.0'></script>
+<script src='js/Game.js?ver=0.2.2.1'></script>
 
 <!--
  Font from http://www.google.com/fonts/specimen/Roboto+Slab
  -->
 <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="libs/jQuery-ui/themes/base/jquery-ui.css" />
-<link rel="stylesheet" href="css/Game.css?ver=0.2.1.0" />
+<link rel="stylesheet" href="css/Game.css?ver=0.2.2.1" />
 
 </head>
 <body id='body'>
@@ -47,6 +48,7 @@
 			<div id='alertButton' class='headerButton activeAlert'>Alerts</div>
 			<div id='statsButton' class='headerButton'>Stats</div>
 			<div id='achievementsButton' class='headerButton'>Achievements</div>
+			<div id='powersButton' class='headerButton'>Powers</div>
 		</div>
 		<div id='headerTabs'>
 		</div>
@@ -70,22 +72,22 @@
 						<div class="progress-label" id='popProgBarLabel'>Make Babies</div>
 					</div>
 					<div id="popSlider"></div>
-					<div id="popRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+					<div id="popRangeLabel" class='rangeLabel'></div><br />
 					<div id="foodProgBar" class='gameButton ui-progressbar disabled'>
 						<div class="progress-label" id='foodProgBarLabel'>Gather Food</div>
 					</div>
 					<div id="foodSlider"></div>
-					<div id="foodRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+					<div id="foodRangeLabel" class='rangeLabel'></div><br />
 					<div id="woodProgBar" class='gameButton ui-progressbar disabled'>
 						<div class="progress-label" id='woodProgBarLabel'>Harvest Wood</div>
 					</div>
 					<div id="woodSlider"></div>
-					<div id="woodRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+					<div id="woodRangeLabel" class='rangeLabel'></div><br />
 					<div id="stoneProgBar" class='gameButton ui-progressbar disabled'>
 						<div class="progress-label" id='stoneProgBarLabel'>Pick Up Stones</div>
 					</div>
 					<div id="stoneSlider"></div>
-					<div id="stoneRangeLabel" style="width:80px; float: left; padding-left: 4px;"></div><br />
+					<div id="stoneRangeLabel" class='rangeLabel'></div><br />
 				</div>
 				<div id='buildingsTabActivityDiv' class='activityDiv' style="width: 120px; display: none;">
 					<div id="houseButton" class='gameButton gameButtonStyle disabled'>

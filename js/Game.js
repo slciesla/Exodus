@@ -29,12 +29,12 @@ function hideActivityDivs() {
 Game = {};
 Game.State = {};
 
-Game.Start = function() {
+Game.Init = function() {
 	Game.initialized = 0;
 	//---------------------------
 	//Game Initialization
 	//---------------------------
-	Game.Init = function() {
+	Game.Start = function() {
 		//---------------------------
 		//Check for browser compat
 		//---------------------------
@@ -42,7 +42,7 @@ Game.Start = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Game.version = 'Beta v0.2.1.0';
+			Game.version = 'Beta v0.2.2.1';
 			Game.initialized = 1;
 			Game.newGame = true;
 			Game.fps = 30;
@@ -120,6 +120,7 @@ Game.Start = function() {
 			Game.State.era = 0;
 			Game.State.planet = {};
 			Game.State.achievements = {};
+			Game.State.powers = {};
 			//Sliders
 			Game.State.range = {};
 			Game.State.range.pop = 150;
@@ -149,6 +150,8 @@ Game.Start = function() {
 			Game.State.stats.buildings = 0;
 			Game.State.stats.naturalDeaths = 0;
 			Game.State.stats.erasVisited = 0;
+			Game.State.stats.timePlayed = 0;
+			Game.State.stats.timePlayedEra = 0;
 			//Upgrades
 			Game.State.upgrades = {};
 			Game.State.upgrades.expMultLevel = 0;
@@ -158,6 +161,9 @@ Game.Start = function() {
 			Game.State.upgrades.upgradeCostLevel = 0;
 			//Prestige Stuff
 			Game.State.prestige = {};
+			//Todo's
+			Game.State.update = {};
+			Game.State.update.b0222 = false;
 			
 			//Era's
 			Game.era = Array();
@@ -172,7 +178,7 @@ Game.Start = function() {
 				}
 			};
 			Game.era[1] = {
-				name: 'Metal Age',
+				name: 'Bronze Age',
 				maxPopulation: 100000,
 				neededPop: 75000,
 				cost: {}
@@ -224,10 +230,20 @@ Game.Start = function() {
 					$("#newsDiv").html("");
 					var txt = "<h3>MENU:</h3>";
 					txt += "Save Game State (copy this and save it somewhere safe):<br />";
-					txt += Game.ExportSave();
+					txt += "<textarea style='height:125px; width:695px;'>"+Game.ExportSave()+"</textarea>";
+					txt += "<br /><br />";
+					txt += "Load Game State (paste the code you saved previously):<br />";
+					txt += "<textarea id='importSave' name='importSave' style='height:125px; width:695px;'></textarea>";
+					txt += "<div id='importSaveButton' class='headerButton'>Import</div>";
 					$("#newsDiv").html(txt);
 					$("#newsDiv").toggleClass('hiddenDiv');
 					$("#overlay").toggleClass('hiddenDiv');
+					Game.importSaveButtonListener = snack.listener({node: document.getElementById('importSaveButton'),
+						event: 'click'}, 
+						function (){
+							Game.ImportSave($("#importSave").val());
+						}
+					);
 				}
 			);
 			Game.changeLogButtonListener = snack.listener({node: document.getElementById('changeLogButton'),
@@ -235,6 +251,13 @@ Game.Start = function() {
 				function (){
 					$("#newsDiv").html("");
 					var txt = "<h3>CHANGE LOG:</h3>\
+						2014.05.12:&nbsp;&nbsp;&nbsp;Beta v0.2.2.1<br />\
+						Fixed bug with time played<br />\
+						<br />\
+						2014.05.11:&nbsp;&nbsp;&nbsp;Beta v0.2.2.0<br />\
+						Added more achievements<br />\
+						Added exporting & importing of save games via menu button<br />\
+						<br />\
 						2014.04.23:&nbsp;&nbsp;&nbsp;Beta v0.2.1.0<br />\
 						Added achievements & some stuff behind the scenes<br />\
 						Reduced amount of exp each exp gain update gives from 10% to 5%<br />\
@@ -331,15 +354,21 @@ Game.Start = function() {
 				function (){
 					$("#newsDiv").html("");
 					var firstPlay = new Date(Game.State.firstPlay);
-					var thisEra = (new Date().getTime()) - Game.State.eraPlayed;
-					var thisEraDisplay = thisEra/1000/60/60;
+					var totalPlayedDisplay = Game.State.stats.timePlayed/60/60;
+					var totalPlayedType = " hours";
+					if(totalPlayedDisplay > 240) {
+						totalPlayedDisplay = totalPlayedDisplay/24;
+						totalPlayedType = " days";
+					}
+					var thisEraDisplay = Game.State.stats.timePlayedEra/60/60;
 					var thisEraType = " hours";
-					if(thisEraDisplay > 1000) {
+					if(thisEraDisplay > 240) {
 						thisEraDisplay = thisEraDisplay/24;
-						var thisEraType = " days";
+						thisEraType = " days";
 					}
 					var txt = "<h3>STATS</h3>"+
 						"Game Started: " + (firstPlay.getMonth()+1) + "/" + firstPlay.getDate() + "/" + firstPlay.getFullYear() + "<br />" + 
+						"Total Time Played: ~" + hrFormat(totalPlayedDisplay) + totalPlayedType + "<br />" + 
 						"Time Played this Era: ~" + hrFormat(thisEraDisplay) + thisEraType + "<br />" + 
 						"Harvests Automatically Gathered: " + hrFormat(Game.State.stats.harvestAuto) + "<br />" +
 						"Harvests Manually Clicked: " + hrFormat(Game.State.stats.harvestClick) + "<br />" +
@@ -407,6 +436,16 @@ Game.Start = function() {
 				function (){
 					$("#newsDiv").html("");
 					var txt = "<h3>Coming Soon!</h3>";
+					$("#newsDiv").html(txt);
+					$("#newsDiv").toggleClass('hiddenDiv');
+					$("#overlay").toggleClass('hiddenDiv');
+				}
+			);
+			Game.powersButtonListener = snack.listener({node: document.getElementById('powersButton'),
+				event: 'click'}, 
+				function (){
+					$("#newsDiv").html("");
+					var txt = "<h3>God Powers</h3>";
 					$("#newsDiv").html(txt);
 					$("#newsDiv").toggleClass('hiddenDiv');
 					$("#overlay").toggleClass('hiddenDiv');
@@ -848,14 +887,14 @@ Game.Start = function() {
 						Game.UpdateSliders();
 					}
 					Game.State.range.pop = ui.value;
-					$("#popRangeLabel").html(hrFormat(Game.State.range.pop));
+					$("#popRangeLabel").html(hrFormat(Game.State.range.pop) + " workers");
 					Game.nextPop = 0;
 					Game.popBarListener.detach();
 					$("#popProgBar").addClass('disabled');
 					$("#popProgBar").removeClass('enabled');
 				  }
 				});
-				$("#popRangeLabel").html(hrFormat(Game.State.range.pop));
+				$("#popRangeLabel").html(hrFormat(Game.State.range.pop) + " workers");
 			});
 			$(function() {
 				$("#foodSlider").slider({
@@ -871,14 +910,14 @@ Game.Start = function() {
 						Game.UpdateSliders();
 					}
 					Game.State.range.food = ui.value;
-					$("#foodRangeLabel").html(hrFormat(Game.State.range.food));
+					$("#foodRangeLabel").html(hrFormat(Game.State.range.food) + " workers");
 					Game.nextFood = 0;
 					Game.foodBarListener.detach();
 					$("#foodProgBar").addClass('disabled');
 					$("#foodProgBar").removeClass('enabled');
 				  }
 				});
-				$("#foodRangeLabel").html(hrFormat(Game.State.range.food));
+				$("#foodRangeLabel").html(hrFormat(Game.State.range.food) + " workers");
 			});
 			$(function() {
 				$("#woodSlider").slider({
@@ -894,14 +933,14 @@ Game.Start = function() {
 						Game.UpdateSliders();
 					}
 					Game.State.range.wood = ui.value;
-					$("#woodRangeLabel").html(hrFormat(Game.State.range.wood));
+					$("#woodRangeLabel").html(hrFormat(Game.State.range.wood) + " workers");
 					Game.nextWood = 0;
 					Game.woodBarListener.detach();
 					$("#woodProgBar").addClass('disabled');
 					$("#woodProgBar").removeClass('enabled');
 				  }
 				});
-				$("#woodRangeLabel").html(hrFormat(Game.State.range.wood));
+				$("#woodRangeLabel").html(hrFormat(Game.State.range.wood) + " workers");
 			});
 			$(function() {
 				$("#stoneSlider").slider({
@@ -917,14 +956,14 @@ Game.Start = function() {
 						Game.UpdateSliders();
 					}
 					Game.State.range.stone = ui.value;
-					$("#stoneRangeLabel").html(hrFormat(Game.State.range.stone));
+					$("#stoneRangeLabel").html(hrFormat(Game.State.range.stone) + " workers");
 					Game.nextStone = 0;
 					Game.stoneBarListener.detach();
 					$("#stoneProgBar").addClass('disabled');
 					$("#stoneProgBar").removeClass('enabled');
 				  }
 				});
-				$("#stoneRangeLabel").html(hrFormat(Game.State.range.stone));
+				$("#stoneRangeLabel").html(hrFormat(Game.State.range.stone) + " workers");
 			});
 			
 			//---------------------------
@@ -1010,7 +1049,7 @@ Game.Start = function() {
 	}
 	
 	//---------------------------
-	//Load the Game
+	//Load & Import the Game
 	//---------------------------
 	Game.LoadGame = function() {
 		try {
@@ -1021,10 +1060,20 @@ Game.Start = function() {
 				jQuery.extend(true,Game.State,JSON.parse(localStorage.gameState));
 				Game.news.push("Loaded Successfully");
 				Game.newGame = false;
+				
+				//Load objects
 				var tmpPlanet = new Planet(true);
 				Game.State.planet = tmpPlanet.LoadPlanet(Game.State.planet);
 				var tmpChievo = new Achievements();
 				Game.State.achievements = tmpChievo.LoadAchievements(Game.State.achievements);
+				var tmpPowers = new Powers();
+				Game.State.powers = tmpPowers.LoadPowers(Game.State.powers);
+				
+				//This is where we do things that need to be updated from old chievos
+				if(!Game.State.update.b0222) {
+					Game.State.update.b0222 = true;
+					Game.State.stats.buildings = Game.State.cabins + Game.State.houses;
+				}
 			} else {
 				Game.news.push("No Saved Game Found");
 				Game.NewGame();
@@ -1034,30 +1083,36 @@ Game.Start = function() {
 			Game.NewGame();
 		}
 	};
-	
-	Game.WriteBreakingNews = function(id) {
-		$('#breakingNews').append("<div class='breakingNewsItem' id='newsItem"+id+"'>"+Game.news[id]+"</div>");
-		$('#newsItem'+id).delay(2000).fadeOut(6000); 
-	}
-	
-	//---------------------------
-	//Save the Game
-	//---------------------------
-	Game.EncryptSave = function(str) {
-		return str>>2;
-	}
-	Game.ExportSave = function() {
-		return JSON.stringify(Game.State, Game.EncryptSave);
-	}
 	Game.DecryptSave = function(str) {
-		return str<<2;
+		var retval = "";
+		var i = 0;
+		while(i != str.length) {
+			retval += String.fromCharCode(parseInt(str.substr(i, 2), 16));
+			i+=2;
+		}
+		return retval;
 	}
-	Game.ImportSave = function() {
-		var save = prompt('Please paste in the text that was given to you on save export.','');
+	Game.ImportSave = function(save) {
 		if (save && save!='') {
-			Game.State = JSON.parse(save, Game.DecryptSave);
+			Game.State = JSON.parse(Game.DecryptSave(save));
 		}
 		Game.SaveGame();
+		location.reload();
+	}
+	
+	//---------------------------
+	//Save & Export the Game
+	//---------------------------
+	Game.EncryptSave = function(str) {
+		var retval = "";
+		var i = 0;
+		while(i != str.length) {
+			retval += str.charCodeAt(i++).toString(16);
+		}
+		return retval;
+	}
+	Game.ExportSave = function() {
+		return Game.EncryptSave(JSON.stringify(Game.State));
 	}
 	
 	Game.SaveGame = function() {
@@ -1067,6 +1122,10 @@ Game.Start = function() {
 		Game.news.push("Game Saved");
 	};
 	
+	Game.WriteBreakingNews = function(id) {
+		$('#breakingNews').append("<div class='breakingNewsItem' id='newsItem"+id+"'>"+Game.news[id]+"</div>");
+		$('#newsItem'+id).delay(2000).fadeOut(6000); 
+	}
 	//---------------------------
 	//Draw the Game
 	//---------------------------
@@ -1188,7 +1247,6 @@ Game.Start = function() {
 				Game.GiveExp(Game.currAsteroidClickExp);
 				Game.State.stone += Game.currAsteroidStone;
 				Game.asteroid.health -= 1;
-				Game.news.push("Asteroid Mined");
 			}
 			if(Game.asteroid.health <= 0) {
 				Game.asteroidSpawned = 0;
@@ -1230,28 +1288,28 @@ Game.Start = function() {
 		value = value > Game.State.pop ? Game.State.pop : value;
 		Game.State.range.pop = value;
 		$("#popSlider").slider("option", "value", value);
-		$("#popRangeLabel").html(hrFormat(value));
+		$("#popRangeLabel").html(hrFormat(value) + " workers");
 		
 		$("#foodSlider").slider("option", "max", Game.State.pop);
 		var value = Game.State.range.food;
 		value = value > Game.State.pop ? Game.State.pop : value;
 		Game.State.range.food = value;
 		$("#foodSlider").slider("option", "value", value);
-		$("#foodRangeLabel").html(hrFormat(value));
+		$("#foodRangeLabel").html(hrFormat(value) + " workers");
 		
 		$("#woodSlider").slider("option", "max", Game.State.pop);
 		var value = Game.State.range.wood;
 		value = value > Game.State.pop ? Game.State.pop : value;
 		Game.State.range.wood = value;
 		$("#woodSlider").slider("option", "value", value);
-		$("#woodRangeLabel").html(hrFormat(value));
+		$("#woodRangeLabel").html(hrFormat(value) + " workers");
 		
 		$("#stoneSlider").slider("option", "max", Game.State.pop);
 		var value = Game.State.range.stone;
 		value = value > Game.State.pop ? Game.State.pop : value;
 		Game.State.range.stone = value;
 		$("#stoneSlider").slider("option", "value", value);
-		$("#stoneRangeLabel").html(hrFormat(value));
+		$("#stoneRangeLabel").html(hrFormat(value) + " workers");
 		
 		Game.currIdlePop = Game.State.pop - $("#popSlider").slider("option", "value") - $("#foodSlider").slider("option", "value")
 			- $("#woodSlider").slider("option", "value") - $("#stoneSlider").slider("option", "value");
@@ -1401,6 +1459,11 @@ Game.Start = function() {
 	Game.CheckChievos = function() {
 		achieved = Game.State.achievements.achieved;
 		//Manual Harvests
+		if(Game.State.stats.harvestClick >= 10000) {
+			if($.inArray(5, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(5);
+			}
+		}
 		if(Game.State.stats.harvestClick >= 5000) {
 			if($.inArray(4, achieved) == -1) {
 				Game.State.achievements.UnlockAchievement(4);
@@ -1428,6 +1491,21 @@ Game.Start = function() {
 		}
 		
 		//Auto Harvests
+		if(Game.State.stats.harvestAuto >= 100000) {
+			if($.inArray(17, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(17);
+			}
+		} 
+		if(Game.State.stats.harvestAuto >= 25000) {
+			if($.inArray(16, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(16);
+			}
+		} 
+		if(Game.State.stats.harvestAuto >= 10000) {
+			if($.inArray(15, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(15);
+			}
+		} 
 		if(Game.State.stats.harvestAuto >= 5000) {
 			if($.inArray(14, achieved) == -1) {
 				Game.State.achievements.UnlockAchievement(14);
@@ -1562,11 +1640,17 @@ Game.Start = function() {
 			}
 		}
 		
-		//TO REMOVE
-		if(Game.State.stats.buildings == 0){
-			Game.State.stats.buildings = Game.State.cabins + Game.State.houses;
-		}
 		//Buildings
+		if(Game.State.stats.buildings >= 5000) {
+			if($.inArray(306, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(306);
+			}
+		} 
+		if(Game.State.stats.buildings >= 1000) {
+			if($.inArray(305, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(305);
+			}
+		} 
 		if(Game.State.stats.buildings >= 500) {
 			if($.inArray(304, achieved) == -1) {
 				Game.State.achievements.UnlockAchievement(304);
@@ -1619,6 +1703,93 @@ Game.Start = function() {
 				Game.State.achievements.UnlockAchievement(350);
 			}
 		}
+		//Asteroids
+		if(Game.State.stats.asteroidClicks >= 5000) {
+			if($.inArray(404, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(404);
+			}
+		}
+		if(Game.State.stats.asteroidClicks >= 1000) {
+			if($.inArray(403, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(403);
+			}
+		}
+		if(Game.State.stats.asteroidClicks >= 500) {
+			if($.inArray(402, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(402);
+			}
+		}
+		if(Game.State.stats.asteroidClicks >= 100) {
+			if($.inArray(401, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(401);
+			}
+		}
+		if(Game.State.stats.asteroidClicks >= 1) {
+			if($.inArray(400, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(400);
+			}
+		}
+		if(Game.State.stats.asteroidExhausts >= 1000) {
+			if($.inArray(454, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(454);
+			}
+		}
+		if(Game.State.stats.asteroidExhausts >= 100) {
+			if($.inArray(453, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(453);
+			}
+		}
+		if(Game.State.stats.asteroidExhausts >= 50) {
+			if($.inArray(452, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(452);
+			}
+		}
+		if(Game.State.stats.asteroidExhausts >= 10) {
+			if($.inArray(451, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(451);
+			}
+		}
+		if(Game.State.stats.asteroidExhausts >= 1) {
+			if($.inArray(450, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(450);
+			}
+		}
+		//Other
+		if(Game.State.stats.minPop == 2 && Game.State.pop >= 10000) {
+			if($.inArray(500, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(500);
+			}
+		}
+		if(Game.State.stats.popStarved >= 10000) {
+			if($.inArray(501, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(501);
+			}
+		}
+		if(Game.State.stats.timePlayed >= 60*60*24) {
+			if($.inArray(502, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(502);
+			}
+		}
+		if(Game.State.era == 1 && Game.State.stats.harvestManual == 0) {
+			if($.inArray(503, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(503);
+			}
+		}
+		if(Game.State.era == 1 && Game.State.stats.harvestClick == 0) {
+			if($.inArray(504, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(504);
+			}
+		}
+		if(Game.State.era >= 1) {
+			if($.inArray(601, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(601);
+			}
+		}
+		if(Game.State.era >= 0) {
+			if($.inArray(600, achieved) == -1) {
+				Game.State.achievements.UnlockAchievement(600);
+			}
+		}
 	}
 	
 	Game.GiveExp = function(exp) {
@@ -1632,6 +1803,9 @@ Game.Start = function() {
 	Game.Logic = function() {
 		Game.EvaluateCosts();
 		Game.CheckChievos();
+		
+		Game.State.stats.timePlayed += 1/Game.fps;
+		Game.State.stats.timePlayedEra += 1/Game.fps;
 		
 		//Timers
 		//Sliders Update
@@ -1770,8 +1944,8 @@ Game.Start = function() {
 	};
 };
 
-Game.Start();
 
 window.onload=function() {
-	if (!Game.initialized) Game.Init();
+	Game.Init();
+	Game.Start();
 };

@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Pixel This</title>
+
+<!----------------------
+ - Pixel This
+ - By: Stephen Ciesla
+ - 
+ - Feel free to play around with the code, just
+ - please do not steal credit, rehost without
+ - permission, or profit off it in anyway.
+ ----------------------->
+ 
+<script src='libs/snackJS/snack-min.js'></script>
+<script src='libs/jQuery/jquery-1.10.2.min.js'></script>
+<script src='libs/jQuery-ui/ui/minified/jquery-ui.min.js'></script>
+<script src='js/seedrandom.js'></script>
+<script src='js/Pixel.js?ver=0.1.0.0'></script>
+
+<!--
+ Font from http://www.google.com/fonts/specimen/Roboto+Slab
+ -->
+<link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="libs/jQuery-ui/themes/base/jquery-ui.css" />
+<link rel="stylesheet" href="css/Pixel.css?ver=0.1.0.0" />
+
+</head>
+<body id='body'>
+	<img id='overlay' src='images/blank.png' style='display: none' />
+	<div id='currency'><div id='pixels'></div></div>
+	<div id='gameContainer' class='container' style='display:none'>
+		<div id='picture'>
+		</div>
+		<div id='overlayDiv'>
+			<canvas id='overlayCanvas'></canvas>
+		</div>
+	</div>
+	
+</body>
+</html>
