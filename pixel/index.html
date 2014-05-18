@@ -28,15 +28,25 @@
 
 </head>
 <body id='body'>
+<div style='width: 1000px; margin: 0px auto;'>
 	<img id='overlay' src='images/blank.png' style='display: none' />
-	<div id='currency'><div id='pixels'></div></div>
-	<div id='gameContainer' class='container' style='display:none'>
-		<div id='picture'>
-		</div>
-		<div id='overlayDiv'>
-			<canvas id='overlayCanvas'></canvas>
+	<div id='currency' style='display: none'><div id='pixels'></div></div>
+	<div style='width: 600px; float: left;'>
+		<div id='gameContainer' class='container' style='display:none'>
+			<div id='picture'>
+			</div>
+			<div id='overlayDiv'>
+				<canvas id='overlayCanvas'></canvas>
+			</div>
 		</div>
 	</div>
-	
+	<div id='info'>
+		<div class='infoHeader'>Available Upgrades</div>
+		<div id='avaialableUpgrades'></div>
+		<br />
+		<div class='infoHeader'>Purchased</div>
+		<Div id='purchasedUpgrades'></div>
+	</div>
+</div>
 </body>
 </html>

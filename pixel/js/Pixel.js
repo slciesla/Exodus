@@ -19,6 +19,9 @@ Pixel.Init = function() {
 			Pixel.newGame = true;
 			Pixel.fps = 30;
 			Pixel.saveEvery = 300; //Save every 5 min
+			Pixel.maxWidth = 600;
+			Pixel.maxHeight = 800;
+			Pixel.news = Array();
 			
 			//---------------------------
 			//Non-saved vars
@@ -33,6 +36,9 @@ Pixel.Init = function() {
 			//---------------------------
 			Pixel.State.firstPlay = Pixel.time;
 			Pixel.State.numPixels = 0;
+			Pixel.State.pixelsThisImage = 0;
+			Pixel.State.image = null;
+			Pixel.State.overlay = null;
 			
 			//---------------------------
 			//State Variables that will be saved
@@ -46,8 +52,8 @@ Pixel.Init = function() {
 			
 			//Setup
 			var index = 0;
-			var width = 800;
-			var height = 600;
+			var width = Pixel.maxWidth;
+			var height = Pixel.maxHeight;
 			$('#pixels').html("Pixels: "+Pixel.State.numPixels);
 			// get the image
 			var overlay = document.getElementById("overlay");
@@ -60,25 +66,28 @@ Pixel.Init = function() {
 			var imgurResponse = $.get(
 				'https://api.imgur.com/3/gallery/random/random/1'
 			).done(function() {
-				var imgurImage = imgurResponse.responseJSON.data[index].link;
-				while(imgurImage.indexOf("/a/") > -1 && index < 50 && 
-					imgurResponse.responseJSON.data[index].height/imgurResponse.responseJSON.data[index].width > 0.1 &&
-					imgurResponse.responseJSON.data[index].width/imgurResponse.responseJSON.data[index].height > 0.1) {
-					index++;
+				var imgurImage = Pixel.State.image;
+				if(imgurImage == null) {
 					imgurImage = imgurResponse.responseJSON.data[index].link;
+					while(imgurImage.indexOf("/a/") > -1 && index < 50 && 
+						imgurResponse.responseJSON.data[index].height/imgurResponse.responseJSON.data[index].width > 0.2 &&
+						imgurResponse.responseJSON.data[index].width/imgurResponse.responseJSON.data[index].height > 0.2) {
+						index++;
+						imgurImage = imgurResponse.responseJSON.data[index].link;
+					}
+					Pixel.State.image = imgurResponse.responseJSON.data[index];
 				}
-				Pixel.State.image = imgurResponse.responseJSON.data[index];
 				width = Pixel.State.image.width;
 				height = Pixel.State.image.height;
-				var widthPct = 800/width;
-				var heightPct = 600/height;
-				if(width > 800 || height > 600) {
+				var widthPct = Pixel.maxWidth/width;
+				var heightPct = Pixel.maxHeight/height;
+				if(width > Pixel.maxWidth || height > Pixel.maxHeight) {
 					if(widthPct < heightPct) {
-						width = width * widthPct;
-						height = height * widthPct;
+						width = Math.floor(width * widthPct);
+						height = Math.floor(height * widthPct);
 					} else {
-						width = width * heightPct;
-						height = height * heightPct;
+						width = Math.floor(width * heightPct);
+						height = Math.floor(height * heightPct);
 					}
 				}
 				$('#picture').css('background-image','url("'+imgurImage+'")');
@@ -94,30 +103,52 @@ Pixel.Init = function() {
 				ctx.width = width;
 				ctx.height = height;
 				// draw the image into the canvas
-				ctx.drawImage(overlay, 0, 0);
+				if(Pixel.State.overlay == null) {
+					ctx.drawImage(overlay, 0, 0);
+				} else {
+					ctx.putImageData(Pixel.State.image, 0, 0);
+				}
 				canvas.addEventListener('mousemove', function(evt) {
 					var canvas = document.getElementById("overlayCanvas");
 					var ctx = canvas.getContext("2d");
 					var rect = canvas.getBoundingClientRect();
 					
+					var canvasOffset=$("#overlayCanvas").offset();
+					var offsetX=canvasOffset.left;
+					var offsetY=canvasOffset.top;
+
 					var mouseX = evt.clientX - rect.left;
 					var mouseY = evt.clientY - rect.top;
 					var image = ctx.getImageData(0,0,width,height);
 					var imageData = image.data;
 					
-					var transparency = imageData[mouseX*4 + mouseY*width*4 + 3];
+					var ndx = mouseX*4 + mouseY*width*4 + 3;
+					var offset = 1;
+					while(ndx%4 != 3) {
+						ndx = mouseX*4 + mouseY*width*4 + 3+offset++;
+					}
+					var transparency = imageData[ndx];
 					if(transparency != 0) {
 						Pixel.State.numPixels++;
-						imageData[mouseX*4 + mouseY*width*4 + 3] = 0;
+						imageData[ndx] = 0;
 					}
 					image.data = imageData;
 					//Save the state of the overlay
 					ctx.putImageData(image, 0, 0);
-					Pixel.State.overlay = image;
+					Pixel.State.overlay = canvas.toDataURL();
 					$('#pixels').html("Pixels: "+Pixel.State.numPixels);
 				}, false);
 				$('#gameContainer').css('display','block');
 			});
+			//---------------------------
+			//Start the game
+			//---------------------------
+			$('#version').html(Pixel.version);
+			Pixel.Loop();
+		} else {
+			$('#document').css('display','none');
+			e('body').innerHTML = "This game requires an HTML5 compliant browser.<br />This" +
+					" includes IE8+, Chrome, Firefox, Safari, and Opera.";
 		}
 	};
 	
@@ -181,7 +212,6 @@ Pixel.Init = function() {
 	}
 	
 	Pixel.SaveGame = function() {
-		Pixel.UpdateCalculations();
 		var thePixels = JSON.stringify(Pixel.State);
 		localStorage.thePixels = thePixels;
 		Pixel.news.push("Pixels Saved");
