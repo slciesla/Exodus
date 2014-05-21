@@ -18,6 +18,8 @@
 <script src='libs/jQuery-ui/ui/minified/jquery-ui.min.js'></script>
 <script src='js/seedrandom.js'></script>
 <script src='js/Pixel.js?ver=0.1.0.0'></script>
+<script src='js/Upgrades.js?ver=0.1.0.0'></script>
+<script src='js/Achievements.js?ver=0.1.0.0'></script>
 
 <!--
  Font from http://www.google.com/fonts/specimen/Roboto+Slab
@@ -29,7 +31,9 @@
 </head>
 <body id='body'>
 <div style='width: 1000px; margin: 0px auto;'>
-	<img id='overlay' src='images/blank.png' style='display: none' />
+	<img id='overlay' style='display: none' />
+	<div id='popUpDiv'></div>
+	<div id='toaster'></div>
 	<div id='currency' style='display: none'><div id='pixels'></div></div>
 	<div style='width: 600px; float: left;'>
 		<div id='gameContainer' class='container' style='display:none'>
@@ -40,13 +44,20 @@
 			</div>
 		</div>
 	</div>
-	<div id='info'>
-		<div class='infoHeader'>Available Upgrades</div>
-		<div id='avaialableUpgrades'></div>
+	<div id='rightCol'>
+		<div id='headerButtons'>
+			<div id='upgradesHeaderBtn' class='headerButton'>Upgrades</div>
+			<div id='imageInfoHeaderBtn' class='headerButton'>Image Info</div>
+			<div id='achievementsHeaderBtn' class='headerButton'>Achievements</div>
+			<div id='menuHeaderBtn' class='headerButton'>Menu</div>
+		</div>
+		<div id='info'></div>
 		<br />
-		<div class='infoHeader'>Purchased</div>
-		<Div id='purchasedUpgrades'></div>
+		<div class='infoHeader'>Breaking News</div>
+		<div id='breakingNews'></div>
 	</div>
+	<div style='clear: both; height: 20px;'></div>
+	<div style='margin: 0px auto; text-align: center;'>All images are courtesy of <a href='http://imgur.com' target='_blank'>Imgur</a> and subject to the <a href='http://imgur.com/tos' target='_blank'>Imgur Image TOS</a></div>
 </div>
 </body>
 </html>
