@@ -108,13 +108,14 @@ Pixel.Init = function() {
 				function (){
 					$("#info").html("");
 					var txt = "<div class='infoHeader'>Available Upgrades:</div><br />";
+					$("#info").append(txt);
 					
 					//Make the buttons
 					for(var ndx=0; ndx!=Pixel.State.upgrades.upgradeList.length; ndx++) {
 						var upgradeNum = Pixel.State.upgrades.upgradeList[ndx];
 						var upgd = Pixel.State.upgrades.upgrades[upgradeNum];
-						txt += "<div class='gameButton' id='upgradeButton"+upgradeNum+"'>"+upgd.name+"</div>";
-						$("#info").html(txt);
+						txt = "<div class='gameButton' id='upgradeButton"+upgradeNum+"'>"+upgd.name+"</div>";
+						$("#info").append(txt);
 					
 						//Now make the event listeners
 						var upgradeNum = Pixel.State.upgrades.upgradeList[ndx];
@@ -122,8 +123,14 @@ Pixel.Init = function() {
 						(function (_upgd) {
 							Pixel.gameButtonListeners[upgradeNum] = snack.listener({node: document.getElementById('upgradeButton'+upgradeNum),
 								event: 'click'}, 
-								function (){
-									alert(_upgd.name+" click");
+								function (event){
+									if(_upgd.cost <= Pixel.State.numPixels) {
+										Pixel.State.numPixels -= _upgd.cost();
+										Pixel.State.upgrades.owned.push(upgradeNum);
+										_upgd.unlockFunction();
+									} else {
+										Pixel.news.push("You need more pixels");
+									}
 								}
 							);
 							Pixel.gameButtonOverListeners[upgradeNum] = snack.listener({node: document.getElementById('upgradeButton'+upgradeNum),
@@ -228,6 +235,10 @@ Pixel.Init = function() {
 		$('#popUpDiv').css('display','block');
 	};
 	
+	Pixel.DisplayPixels = function() {
+		$('#currency').css('display','block');
+	}
+	
 	Pixel.HidePopUpDiv = function() {
 		$('#popUpDiv').css('display','none');
 	}
@@ -326,6 +337,7 @@ Pixel.Init = function() {
 			}
 		} catch(e) {
 			Pixel.news.push("Error Loading Saved Pixels");
+			console.log(e.message);
 		}
 	};
 	Pixel.DecryptSave = function(str) {

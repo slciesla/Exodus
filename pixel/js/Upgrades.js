@@ -4,15 +4,27 @@ function Upgrades() {
 		name: "Pixel Display",
 		desc: "Display your hard earned pixels",
 		cost: 1000,
-		prereq: -1
+		persist: false,
+		prereq: -1,
+		unlockFunction: Pixel.DisplayPixels
 	};
 	this.upgrades[1] = {
-		name: "Test",
-		desc: "Test test",
-		cost: 1000,
-		prereq: -1
+		name: "Automatic Cursor",
+		desc: "Automatically collects 1 pixels every 10 seconds for you",
+		cost: 10000,
+		persist: false,
+		prereq: 0,
+		unlockFunction: "AutoCursor"
 	};
-	this.upgradeList = Array(0,1);
+	this.upgrades[2] = {
+		name: "Auto Cursor Speed",
+		desc: "Cursors collect pixels faster",
+		cost: 10000,
+		persist: true,
+		prereq: 1,
+		unlockFunction: "AutoCursorUpgrade"
+	};
+	this.upgradeList = Array(0,1,2);
 	this.owned = Array();
 }
 
