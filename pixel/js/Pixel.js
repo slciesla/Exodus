@@ -125,7 +125,7 @@ Pixel.Init = function() {
 								event: 'click'}, 
 								function (event){
 									if(_upgd.cost <= Pixel.State.numPixels) {
-										Pixel.State.numPixels -= _upgd.cost();
+										Pixel.State.numPixels -= _upgd.cost;
 										Pixel.State.upgrades.owned.push(upgradeNum);
 										_upgd.unlockFunction();
 									} else {
