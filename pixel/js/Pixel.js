@@ -20,18 +20,21 @@ Pixel.Init = function() {
 			Pixel.saveEvery = 300; //Save every 5 min
 			Pixel.maxWidth = 600;
 			Pixel.maxHeight = 800;
+			Pixel.baseCursorSpeed = 10;
 			
 			//---------------------------
 			//Non-saved vars
 			//---------------------------
 			Pixel.timeToSave = 0;
+			Pixel.timeToCursor = 0;
 			Pixel.newsId = 0;
 			Pixel.delay = 0;
 			Pixel.imageWidth = Pixel.maxWidth;
 			Pixel.imageHeight = Pixel.maxHeight;
 			Pixel.time = new Date().getTime();
-			Pixel.news = Array();
+			Pixel.pictureComplete = false;
 			Pixel.lastNews = 0;
+			Pixel.news = Array();
 			Pixel.gameButtonListeners = Array();
 			Pixel.gameButtonOverListeners = Array();
 			
@@ -41,8 +44,12 @@ Pixel.Init = function() {
 			Pixel.State.firstPlay = Pixel.time;
 			Pixel.State.numPixels = 0;
 			Pixel.State.pixelsThisImage = 0;
+			Pixel.State.lastRandX = 0;
+			Pixel.State.lastRandY = 0;
 			Pixel.State.image = null;
 			Pixel.State.overlay = null;
+			Pixel.State.cursorSpeedLvl = 0;
+			Pixel.State.cursorBombLvl = 0;
 			Pixel.State.achievements = {};
 			Pixel.State.upgrades = {};
 			
@@ -56,6 +63,7 @@ Pixel.Init = function() {
 			Pixel.State.stats.worstPictureTime = 0;
 			Pixel.State.stats.picturesCompleted = 0;
 			Pixel.State.stats.picturesSkipped = 0;
+			Pixel.State.stats.pixelsAllTime = 0;
 			
 			//Load the existing state if one exists
 			Pixel.LoadGame();
@@ -114,36 +122,46 @@ Pixel.Init = function() {
 					for(var ndx=0; ndx!=Pixel.State.upgrades.upgradeList.length; ndx++) {
 						var upgradeNum = Pixel.State.upgrades.upgradeList[ndx];
 						var upgd = Pixel.State.upgrades.upgrades[upgradeNum];
-						txt = "<div class='gameButton' id='upgradeButton"+upgradeNum+"'>"+upgd.name+"</div>";
-						$("#info").append(txt);
-					
-						//Now make the event listeners
-						var upgradeNum = Pixel.State.upgrades.upgradeList[ndx];
-						var upgd = Pixel.State.upgrades.upgrades[upgradeNum];
-						(function (_upgd) {
-							Pixel.gameButtonListeners[upgradeNum] = snack.listener({node: document.getElementById('upgradeButton'+upgradeNum),
-								event: 'click'}, 
-								function (event){
-									if(_upgd.cost <= Pixel.State.numPixels) {
-										Pixel.State.numPixels -= _upgd.cost;
-										Pixel.State.upgrades.owned.push(upgradeNum);
-										_upgd.unlockFunction();
-									} else {
-										Pixel.news.push("You need more pixels");
+						if($.inArray(upgradeNum, Pixel.State.upgrades.owned) == -1) {
+							if(upgd.prereq == -1 || $.inArray(upgd.prereq, Pixel.State.upgrades.owned) != -1) {
+								txt = "<div class='gameButton' id='upgradeButton"+upgradeNum+"'>"+upgd.name+"</div>";
+								$("#info").append(txt);
+							
+								//Now make the event listeners
+								var upgradeNum = Pixel.State.upgrades.upgradeList[ndx];
+								var upgd = Pixel.State.upgrades.upgrades[upgradeNum];
+								(function (_upgd) {
+									var cost = _upgd.cost;
+									var popupTxt = "Desc: "+_upgd.desc+"<br />";
+									if(_upgd.persist) {
+										cost = _upgd.costFunc(cost);
+										popupTxt += "Current Level: " + _upgd.tracker + "<br />";
 									}
-								}
-							);
-							Pixel.gameButtonOverListeners[upgradeNum] = snack.listener({node: document.getElementById('upgradeButton'+upgradeNum),
-								event: 'mouseover'}, 
-								function(evt){
-									$(this).mousemove(function(event){
-										Pixel.ShowPopUpDiv(event.pageX, event.pageY,
-											"Desc: "+_upgd.desc+"<br />"+
-											"Cost: "+_upgd.cost+" Pixels<br />");
-									});
-								}
-							);
-						})(upgd);
+									popupTxt += "Next Cost: "+cost+" Pixels<br />";
+									
+									Pixel.gameButtonListeners[_upgd.id] = snack.listener({node: document.getElementById('upgradeButton'+_upgd.id),
+										event: 'click'}, 
+										function (event){
+											if(cost <= Pixel.State.numPixels) {
+												Pixel.State.numPixels -= cost;
+												$('#pixels').html("Pixels: "+Pixel.State.numPixels);
+												_upgd.unlockFunction();
+											} else {
+												Pixel.news.push("You need more pixels");
+											}
+										}
+									);
+									Pixel.gameButtonOverListeners[_upgd.id] = snack.listener({node: document.getElementById('upgradeButton'+_upgd.id),
+										event: 'mouseover'}, 
+										function(evt){
+											$(this).mousemove(function(event){
+												Pixel.ShowPopUpDiv(event.pageX, event.pageY, popupTxt);
+											});
+										}
+									);
+								})(upgd);
+							}
+						}
 					}
 				}
 			);
@@ -235,12 +253,28 @@ Pixel.Init = function() {
 		$('#popUpDiv').css('display','block');
 	};
 	
-	Pixel.DisplayPixels = function() {
-		$('#currency').css('display','block');
-	}
-	
 	Pixel.HidePopUpDiv = function() {
 		$('#popUpDiv').css('display','none');
+	};
+	
+	//Upgrade Unlock Functions
+	Pixel.DisplayPixels = function() {
+		$('#currency').css('display','block');
+		Pixel.State.upgrades.owned.push(0);
+	};
+	
+	Pixel.AutoCursor = function() {
+		Pixel.State.cursorSpeedLvl = 1;
+		Pixel.State.upgrades.owned.push(1);
+	}
+	
+	Pixel.AutoCursorUpgrade = function() {
+		Pixel.State.cursorSpeedLvl++;
+	}
+	
+	//Upgrade Cost Functions
+	Pixel.CursorCost = function(initial) {
+		return initial + 1000 * Pixel.State.cursorSpeedLvl * Pixel.State.cursorSpeedLvl;
 	}
 	
 	Pixel.GetNewImage = function() {
@@ -270,7 +304,7 @@ Pixel.Init = function() {
 		}).always(function() {
 			Pixel.LoadImage(imgurImage);
 		});
-	}
+	};
 	
 	Pixel.LoadImage = function(image) {
 		if(image != null) {
@@ -329,6 +363,12 @@ Pixel.Init = function() {
 				Pixel.State.achievements = tmpChievo.LoadAchievements(Pixel.State.achievements);
 				var tmpUpgrades = new Upgrades();
 				Pixel.State.upgrades = tmpUpgrades.LoadUpgrades(Pixel.State.upgrades);
+				
+				//Check stuff
+				//If we have the pixel display, turn it on
+				if($.inArray(0, Pixel.State.upgrades.owned) != -1) {
+					$('#currency').css('display','block');
+				}
 				
 				//This is where we do things that need to be updated from old chievos
 
@@ -394,6 +434,13 @@ Pixel.Init = function() {
 		Pixel.State.stats.timePlayed += 1/Pixel.fps;
 		Pixel.State.stats.timePlayedPicture += 1/Pixel.fps;
 		
+		//Check Picture Complete
+		if(Pixel.State.pixelsThisImage == Pixel.imageWidth*Pixel.imageHeight) {
+			Pixel.news.push("Picture Complete");
+			Pixel.pictureComplete=true;
+			alert("Picture Complete");
+		}
+		
 		//Save Game
 		Pixel.timeToSave+=1/Pixel.fps;
 		if(Pixel.timeToSave >= Pixel.saveEvery) {
@@ -412,6 +459,64 @@ Pixel.Init = function() {
 				i--;
 			}
 			$('#breakingNews').html(news);
+		}
+		
+		//Run the auto cursor
+		if($.inArray(1, Pixel.State.upgrades.owned) != -1 && !Pixel.pictureComplete) {
+			Pixel.timeToCursor+=1/Pixel.fps;
+			if(Pixel.timeToCursor >= .1){//Pixel.baseCursorSpeed*(1-0.1*Pixel.State.cursorSpeedLvl)) {
+				Pixel.timeToCursor = 0;
+				var canvas = document.getElementById("overlayCanvas");
+				var ctx = canvas.getContext("2d");
+				var overlayImage = ctx.getImageData(0,0,Pixel.imageWidth,Pixel.imageHeight);
+				var overlayImageData = overlayImage.data;
+				
+				var trans = -1;
+				var maxTry = 0;
+				//Only try this method up to 50 times, we don't want to get stuck in a loop
+				//randomly trying to get like the last pixel
+				while(trans != 0 && maxTry != 50) {
+					maxTry++;
+					Math.seedrandom();
+					var randX = Math.floor(Math.random() * (Pixel.imageWidth+1));
+					var randY = Math.floor(Math.random() * (Pixel.imageHeight+1));
+					//console.log("Random Try "+maxTry+": "+randX+" - "+randY);
+					
+					var ndx = randX*4 + randY*Pixel.imageWidth*4 + 3;
+					var offset = 1;
+					while(ndx%4 != 3) {
+						ndx = randX*4 + randY*Pixel.imageWidth*4 + 3+offset++;
+					}
+					trans = overlayImageData[ndx];
+				}
+				
+				//If we hit the max random tries, time to go pixel by pixel through the image looking for an open one
+				var counter = 0;
+				if(maxTry > 50) {
+					var randX = Pixel.State.lastRandX;
+					var randY = Pixel.State.lastRandY;
+					while(trans != 0) {
+						counter++;
+						var ndx = randX*4 + randY*Pixel.imageWidth*4 + 3;
+						var offset = 1;
+						while(ndx%4 != 3) {
+							ndx = randX*4 + randY*Pixel.imageWidth*4 + 3+offset++;
+						}
+						trans = overlayImageData[ndx];
+						counter++;
+						console.log("PxP Try "+counter+": "+randX+" - "+randY);
+						if(randX++ > Pixel.imageWidth){
+							randX = 0;
+							randY++;
+						}
+					}
+				}
+				Pixel.State.numPixels++;
+				overlayImageData[ndx] = 0;
+				overlayImage.data = overlayImageData;
+				ctx.putImageData(overlayImage, 0, 0);
+				$('#pixels').html("Pixels: "+Pixel.State.numPixels);
+			}
 		}
 	};
 	
