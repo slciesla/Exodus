@@ -16,17 +16,15 @@
 <script src='libs/snackJS/snack-min.js'></script>
 <script src='libs/jQuery/jquery-1.10.2.min.js'></script>
 <script src='libs/jQuery-ui/ui/minified/jquery-ui.min.js'></script>
+<script src='js/date.format.js'></script>
 <script src='js/seedrandom.js'></script>
-<script src='js/Pixel.js?ver=0.1.0.0'></script>
-<script src='js/Upgrades.js?ver=0.1.0.0'></script>
-<script src='js/Achievements.js?ver=0.1.0.0'></script>
+<script src='js/Pixel.js?ver=0.1.0.2'></script>
+<script src='js/Upgrades.js?ver=0.1.0.2'></script>
+<script src='js/Achievements.js?ver=0.1.0.1'></script>
 
-<!--
- Font from http://www.google.com/fonts/specimen/Roboto+Slab
- -->
-<link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Press+Start+2P' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="libs/jQuery-ui/themes/base/jquery-ui.css" />
-<link rel="stylesheet" href="css/Pixel.css?ver=0.1.0.0" />
+<link rel="stylesheet" href="css/Pixel.css?ver=0.1.0.1" />
 
 </head>
 <body id='body'>
@@ -34,7 +32,11 @@
 	<img id='overlay' style='display: none' />
 	<div id='popUpDiv'></div>
 	<div id='toaster'></div>
-	<div id='currency' style='display: none'><div id='pixels'></div></div>
+	<div id='currency' style='display: none'>
+		<div style='float: left'>Pixels:&nbsp;</div><div id='pixels'></div>
+		<div style='float: left'>Pixels/Sec:&nbsp;</div><div id='pps'></div>
+		<div style='float: right;display:none;' id='bomb'>B</div>
+	</div>
 	<div style='width: 600px; float: left;'>
 		<div id='gameContainer' class='container' style='display:none'>
 			<div id='picture'>

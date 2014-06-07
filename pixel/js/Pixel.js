@@ -20,13 +20,15 @@ Pixel.Init = function() {
 			Pixel.saveEvery = 300; //Save every 5 min
 			Pixel.maxWidth = 600;
 			Pixel.maxHeight = 800;
-			Pixel.baseCursorSpeed = 10;
+			Pixel.baseAutoCursorSpeed = 2;
+			Pixel.baseBombReloadSpeed = 36;
 			
 			//---------------------------
 			//Non-saved vars
 			//---------------------------
 			Pixel.timeToSave = 0;
 			Pixel.timeToCursor = 0;
+			Pixel.timeToBomb = 0;
 			Pixel.newsId = 0;
 			Pixel.delay = 0;
 			Pixel.imageWidth = Pixel.maxWidth;
@@ -48,10 +50,13 @@ Pixel.Init = function() {
 			Pixel.State.lastRandY = 0;
 			Pixel.State.image = null;
 			Pixel.State.overlay = null;
-			Pixel.State.cursorSpeedLvl = 0;
-			Pixel.State.cursorBombLvl = 0;
-			Pixel.State.achievements = {};
-			Pixel.State.upgrades = {};
+			Pixel.State.cursorSizeLvl = 1;
+			Pixel.State.autoCursorSpeedLvl = 0;
+			Pixel.State.cursorBombSizeLvl = 0;
+			Pixel.State.cursorBombSpeedLvl = 0;
+			Pixel.State.bombReady = true;
+			Pixel.State.achievements = new Achievements();
+			Pixel.State.upgrades = new Upgrades();
 			
 			//---------------------------
 			//State Variables that will be saved
@@ -70,7 +75,11 @@ Pixel.Init = function() {
 			
 			//Setup
 			var index = 0;
-			$('#pixels').html("Pixels: "+Pixel.State.numPixels);
+			$('#pixels').html(Pixel.State.numPixels);
+			$('#pps').html(((1+0.1*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2));
+			if(Pixel.State.autoCursorSpeedLvl == 0) {
+				$('#pps').html("0");
+			}
 			
 			//If we don't have an image stored, get one
 			if(Pixel.State.image == null) {
@@ -79,37 +88,7 @@ Pixel.Init = function() {
 				//Otherwise we have an image, load the existing one
 				Pixel.LoadImage(Pixel.State.image);
 			}
-			
-			//Mouse Move event for overlay
-			var canvas = document.getElementById("overlayCanvas");
-			canvas.addEventListener('mousemove', function(evt) {
-				var ctx = canvas.getContext("2d");
-				var rect = canvas.getBoundingClientRect();
-				
-				var canvasOffset=$("#overlayCanvas").offset();
-				var offsetX=canvasOffset.left;
-				var offsetY=canvasOffset.top;
 
-				var mouseX = evt.clientX - rect.left;
-				var mouseY = evt.clientY - rect.top;
-				var overlayImage = ctx.getImageData(0,0,Pixel.imageWidth,Pixel.imageHeight);
-				var overlayImageData = overlayImage.data;
-				
-				var ndx = mouseX*4 + mouseY*Pixel.imageWidth*4 + 3;
-				var offset = 1;
-				while(ndx%4 != 3) {
-					ndx = mouseX*4 + mouseY*Pixel.imageWidth*4 + 3+offset++;
-				}
-				var transparency = overlayImageData[ndx];
-				if(transparency != 0) {
-					Pixel.State.numPixels++;
-					overlayImageData[ndx] = 0;
-				}
-				overlayImage.data = overlayImageData;
-				ctx.putImageData(overlayImage, 0, 0);
-				$('#pixels').html("Pixels: "+Pixel.State.numPixels);
-			}, false);
-			
 			//Header Button listeners
 			Pixel.UpgradesButtonListener = snack.listener({node: document.getElementById('upgradesHeaderBtn'),
 				event: 'click'}, 
@@ -122,8 +101,8 @@ Pixel.Init = function() {
 					for(var ndx=0; ndx!=Pixel.State.upgrades.upgradeList.length; ndx++) {
 						var upgradeNum = Pixel.State.upgrades.upgradeList[ndx];
 						var upgd = Pixel.State.upgrades.upgrades[upgradeNum];
-						if($.inArray(upgradeNum, Pixel.State.upgrades.owned) == -1) {
-							if(upgd.prereq == -1 || $.inArray(upgd.prereq, Pixel.State.upgrades.owned) != -1) {
+						if(!Pixel.State.upgrades.Check(upgradeNum)) {
+							if(upgd.prereq == -1 || Pixel.State.upgrades.Check(upgd.prereq)) {
 								txt = "<div class='gameButton' id='upgradeButton"+upgradeNum+"'>"+upgd.name+"</div>";
 								$("#info").append(txt);
 							
@@ -133,9 +112,9 @@ Pixel.Init = function() {
 								(function (_upgd) {
 									var cost = _upgd.cost;
 									var popupTxt = "Desc: "+_upgd.desc+"<br />";
-									if(_upgd.persist) {
+									if(_upgd.persist && _upgd.tracker) {
 										cost = _upgd.costFunc(cost);
-										popupTxt += "Current Level: " + _upgd.tracker + "<br />";
+										popupTxt += "Current Level: " + _upgd.tracker() + "<br />";
 									}
 									popupTxt += "Next Cost: "+cost+" Pixels<br />";
 									
@@ -144,19 +123,27 @@ Pixel.Init = function() {
 										function (event){
 											if(cost <= Pixel.State.numPixels) {
 												Pixel.State.numPixels -= cost;
-												$('#pixels').html("Pixels: "+Pixel.State.numPixels);
+												$('#pixels').html(Pixel.State.numPixels);
 												_upgd.unlockFunction();
+												Pixel.UpgradesButtonListener.fire();
 											} else {
 												Pixel.news.push("You need more pixels");
 											}
 										}
 									);
 									Pixel.gameButtonOverListeners[_upgd.id] = snack.listener({node: document.getElementById('upgradeButton'+_upgd.id),
-										event: 'mouseover'}, 
-										function(evt){
+										event: "mouseover"},
+										function(e) {
 											$(this).mousemove(function(event){
 												Pixel.ShowPopUpDiv(event.pageX, event.pageY, popupTxt);
 											});
+										}
+									);
+									
+									//Game Buttons - On mouseout
+									$('#upgradeButton'+_upgd.id).bind("mouseout",
+										function(e) {
+											Pixel.HidePopUpDiv();
 										}
 									);
 								})(upgd);
@@ -172,9 +159,39 @@ Pixel.Init = function() {
 				function (){
 					$("#info").html("");
 					var txt = "<div class='infoHeader'>Image Information:</div><br />";
-					txt += "<div>Requires upgrade purchase!</div><br /><br />";
+					if(Pixel.State.upgrades.Check(5)) {
+						txt += "<span class='statName'>Image Title:</span> " + Pixel.State.image.title + "<br />";
+						txt += "<span class='statName'>Image Source:</span> <a href='http://imgur.com/gallery/" + 
+							Pixel.State.image.id + "' target='_blank'>Gallery Link</a><br />";
+						txt += "<span class='statName'>Upload Date:</span> "+dateFormat(Pixel.State.image.datetime*1000)+dateFormat(Pixel.State.image.datetime*1000,"Z")+"<br />";
+					} else {
+						txt += "<div>Requires Purchase!</div><br /><br />";
+					}
+					if(Pixel.State.upgrades.Check(6)) {
+						txt += "<span class='statName'>Imgur Score:</span> "+Pixel.State.image.score+" Points<br />";
+						txt += "<span class='statName'>Imgur Upvotes:</span> "+Pixel.State.image.ups+" Votes<br />";
+						txt += "<span class='statName'>Imgur Downvotes:</span> "+Pixel.State.image.downs+" Votes<br />";
+						txt += "<span class='statName'>Image Width:</span> "+Pixel.State.image.width+" Pixels<br />";
+						txt += "<span class='statName'>Image Height:</span> "+Pixel.State.image.height+" Pixels<br />";
+						txt += "<span class='statName'>Pixel Count:</span> "+Pixel.State.image.height*Pixel.State.image.width+"<br />";
+					}
+					txt += "<br />";
 					txt += "<div class='infoHeader'>Statistics:</div><br />";
-					txt += "<div>Requires upgrade purchase!</div>";
+					
+					if(Pixel.State.upgrades.Check(7)) {
+						txt += "<span class='statName'>Time Played:</span> "+Math.floor(Pixel.State.stats.timePlayed)+" seconds<br />";
+						txt += "<span class='statName'>Time Played this Picture:</span> "+Math.floor(Pixel.State.stats.timePlayedPicture)+" seconds<br />";
+						txt += "<span class='statName'>All Time Pixels:</span> "+Pixel.State.stats.pixelsAllTime+"<br />";
+						txt += "<span class='statName'>Pixels This Image:</span> "+Pixel.State.pixelsThisImage+"<br />";
+					} else {
+						txt += "<div>Requires Purchase!</div><br /><br />";
+					}
+					if(Pixel.State.upgrades.Check(8)) {
+						txt += "<span class='statName'>Fastest Picture Completion:</span> "+Math.floor(Pixel.State.stats.bestPictureTime)+" seconds<br />";
+						txt += "<span class='statName'>Slowest Picture Completion:</span> "+Math.floor(Pixel.State.stats.worstPictureTime)+" seconds<br />";
+						txt += "<span class='statName'>Pictures Completed:</span> "+Pixel.State.stats.picturesCompleted+"<br />";
+						txt += "<span class='statName'>Pictured Skipped:</span> "+Pixel.State.stats.picturesSkipped+"<br />";
+					}
 					$("#info").html(txt);
 				}
 			);
@@ -219,13 +236,6 @@ Pixel.Init = function() {
 				}
 			);
 			
-			//Game Buttons - On mouseout
-			$(".gameButton").bind("mouseout",
-				function(e) {
-					Pixel.HidePopUpDiv();
-				}
-			);
-			
 			$('#gameContainer').css('display','block');
 			$('#version').html(Pixel.version);
 			
@@ -262,22 +272,824 @@ Pixel.Init = function() {
 		$('#currency').css('display','block');
 		Pixel.State.upgrades.owned.push(0);
 	};
-	
 	Pixel.AutoCursor = function() {
-		Pixel.State.cursorSpeedLvl = 1;
+		Pixel.State.autoCursorSpeedLvl = 1;
+		$('#pps').html(((1+0.1*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2));
 		Pixel.State.upgrades.owned.push(1);
+	};
+	Pixel.AutoCursorSpeedUpgrade = function() {
+		Pixel.State.autoCursorSpeedLvl++;
+		$('#pps').html(((1+0.1*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2));
+	};
+	Pixel.CursorSizeUpgrade = function() {
+		Pixel.State.cursorSizeLvl++;
+		var canvas = document.getElementById("overlayCanvas");
+		canvas.removeEventListener('mousemove', Pixel.canvasMouseOver);
+		canvas.addEventListener('mousemove', Pixel.canvasMouseOver);
+	};
+	Pixel.BasicInfoUnlock = function() {
+		Pixel.State.upgrades.owned.push(5);
+	};
+	Pixel.AdvancedInfoUnlock = function() {
+		Pixel.State.upgrades.owned.push(6);
+	};
+	Pixel.BasicStatsUnlock = function() {
+		Pixel.State.upgrades.owned.push(7);
+	};
+	Pixel.AdvancedStatsUnlock = function() {
+		Pixel.State.upgrades.owned.push(8);
+	};
+	Pixel.CursorBombUnlock = function() {
+		Pixel.State.cursorBombSizeLvl = 1;
+		Pixel.State.cursorBombSpeedLvl = 1;
+		Pixel.State.upgrades.owned.push(10);
+		Pixel.TurnOnBombListener();
+	};
+	Pixel.CursorBombSizeUpgradeI = function() {
+		Pixel.State.cursorBombSizeLvl++;
+		Pixel.State.upgrades.owned.push(11);
+		$('#bomb').css("display","block");
+		Pixel.State.bombReady = true;
 	}
-	
-	Pixel.AutoCursorUpgrade = function() {
-		Pixel.State.cursorSpeedLvl++;
+	Pixel.CursorBombSizeUpgradeII = function() {
+		Pixel.State.cursorBombSizeLvl++;
+		Pixel.State.upgrades.owned.push(13);
+		$('#bomb').css("display","block");
+		Pixel.State.bombReady = true;
 	}
+	Pixel.CursorBombSizeUpgradeIII = function() {
+		Pixel.State.cursorBombSizeLvl++;
+		Pixel.State.upgrades.owned.push(14);
+		$('#bomb').css("display","block");
+		Pixel.State.bombReady = true;
+	}
+	Pixel.CursorBombSizeUpgradeIV = function() {
+		Pixel.State.cursorBombSizeLvl++;
+		Pixel.State.upgrades.owned.push(15);
+		$('#bomb').css("display","block");
+		Pixel.State.bombReady = true;
+	}
+	Pixel.CursorBombSizeUpgradeV = function() {
+		Pixel.State.cursorBombSizeLvl++;
+		Pixel.State.upgrades.owned.push(16);
+		$('#bomb').css("display","block");
+		Pixel.State.bombReady = true;
+	}
+	Pixel.CursorBombSpeedUpgrade = function() {
+		Pixel.State.cursorBombSpeedLvl++;
+	};
 	
 	//Upgrade Cost Functions
-	Pixel.CursorCost = function(initial) {
-		return initial + 1000 * Pixel.State.cursorSpeedLvl * Pixel.State.cursorSpeedLvl;
-	}
+	Pixel.AutoCursorSpeedCost = function(initial) {
+		return initial + initial * 0.1 * Pixel.State.autoCursorSpeedLvl * 10;
+	};
+	Pixel.CursorSizeCost = function(initial) {
+		return Math.floor(initial + initial * 0.5 * Math.pow(1.5,Pixel.State.cursorSizeLvl));
+	};
+	Pixel.CursorBombSpeedCost = function(initial) {
+		return Math.floor(initial + initial * 0.25 *  Math.pow(Pixel.State.cursorBombSpeedLvl,2));
+	};
 	
+	//Other Functions
+	Pixel.canvasMouseOver = function(evt) {
+		var canvas = document.getElementById("overlayCanvas");
+		var ctx = canvas.getContext("2d");
+		var rect = canvas.getBoundingClientRect();
+		
+		var canvasOffset=$("#overlayCanvas").offset();
+		var offsetX=canvasOffset.left;
+		var offsetY=canvasOffset.top;
+
+		var mouseX = evt.clientX - rect.left;
+		var mouseY = evt.clientY - rect.top;
+		var overlayImage = ctx.getImageData(0,0,Pixel.imageWidth,Pixel.imageHeight);
+		var overlayImageData = overlayImage.data;
+		
+		var ndx = mouseX*4 + mouseY*Pixel.imageWidth*4 + 3;
+		var offset = 1;
+		var i=0;
+		var x=0, y=0, xMod=1, yMod=1, cap=0;
+		while(ndx%4 != 3) {
+			ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+		}
+		var transparency = overlayImageData[ndx];
+		if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+			Pixel.State.numPixels++;
+			Pixel.State.pixelsThisImage++;
+			Pixel.State.stats.pixelsAllTime++;
+			overlayImageData[ndx] = 0;
+		}
+		
+		cap=1;x=cap;y=0;xMod=1;yMod=1;
+		var limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+		for(i=0; i!= limit; i++) {
+			ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+			offset = 1;
+			while(ndx%4 != 3) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+			}
+			transparency = overlayImageData[ndx];
+			if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+				Pixel.State.numPixels++;
+				Pixel.State.pixelsThisImage++;
+				Pixel.State.stats.pixelsAllTime++;
+				overlayImageData[ndx] = 0;
+			}
+			ndx += 4;
+			if(Math.abs(x) == cap) {
+				xMod *= -1;
+			}
+			x += xMod;
+			if(Math.abs(y) == cap) {
+				yMod *= -1;
+			}
+			y += yMod;
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=2;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=3;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=4;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=5;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=6;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=7;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=8;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=9;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=10;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=11;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		
+		if(Pixel.State.cursorSizeLvl > 4*cap) {
+			cap=12;x=cap;y=0;xMod=1;yMod=1;
+			limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			for(i=0; i!= limit; i++) {
+				ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+				offset = 1;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				ndx += 4;
+				if(Math.abs(x) == cap) {
+					xMod *= -1;
+				}
+				x += xMod;
+				if(Math.abs(y) == cap) {
+					yMod *= -1;
+				}
+				y += yMod;
+			}
+		}
+		overlayImage.data = overlayImageData;
+		ctx.putImageData(overlayImage, 0, 0);
+		$('#pixels').html(Pixel.State.numPixels);
+	};
+	Pixel.TurnOnBombListener = function() {
+		$('#bomb').css("display","block");
+		Pixel.State.bombReady = true;
+		var canvas = document.getElementById("overlayCanvas");
+		canvas.addEventListener('click', function(evt) {
+			if(Pixel.State.bombReady) {
+				Pixel.State.bombReady = false;
+				$('#bomb').css("display","none");
+				var ctx = canvas.getContext("2d");
+				var rect = canvas.getBoundingClientRect();
+				
+				var canvasOffset=$("#overlayCanvas").offset();
+				var offsetX=canvasOffset.left;
+				var offsetY=canvasOffset.top;
+
+				var mouseX = evt.clientX - rect.left;
+				var mouseY = evt.clientY - rect.top;
+				var overlayImage = ctx.getImageData(0,0,Pixel.imageWidth,Pixel.imageHeight);
+				var overlayImageData = overlayImage.data;
+				
+				//lvl base
+				var ndx = mouseX*4 + mouseY*Pixel.imageWidth*4 + 3;
+				var offset = 1;
+				var i=0;
+				var x=0, y=0, xMod=1, yMod=1, cap=0;
+				while(ndx%4 != 3) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+				}
+				var transparency = overlayImageData[ndx];
+				if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+					Pixel.State.numPixels++;
+					Pixel.State.pixelsThisImage++;
+					Pixel.State.stats.pixelsAllTime++;
+					overlayImageData[ndx] = 0;
+				}
+				
+				//lvl base
+				cap=1;x=cap;y=0;xMod=1;yMod=1;
+				for(i=0; i!= 4*cap; i++) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+					offset = 1;
+					while(ndx%4 != 3) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+					}
+					transparency = overlayImageData[ndx];
+					if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+						Pixel.State.numPixels++;
+						Pixel.State.pixelsThisImage++;
+						Pixel.State.stats.pixelsAllTime++;
+						overlayImageData[ndx] = 0;
+					}
+					ndx += 4;
+					if(Math.abs(x) == cap) {
+						xMod *= -1;
+					}
+					x += xMod;
+					if(Math.abs(y) == cap) {
+						yMod *= -1;
+					}
+					y += yMod;
+				}
+				
+				//lvl base
+				cap=2;x=cap;y=0;xMod=1;yMod=1;
+				for(i=0; i!= 4*cap; i++) {
+					ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+					offset = 1;
+					while(ndx%4 != 3) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+					}
+					transparency = overlayImageData[ndx];
+					if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+						Pixel.State.numPixels++;
+						Pixel.State.pixelsThisImage++;
+						Pixel.State.stats.pixelsAllTime++;
+						overlayImageData[ndx] = 0;
+					}
+					ndx += 4;
+					if(Math.abs(x) == cap) {
+						xMod *= -1;
+					}
+					x += xMod;
+					if(Math.abs(y) == cap) {
+						yMod *= -1;
+					}
+					y += yMod;
+				}
+				
+				//lvl I
+				cap=3;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(11)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl I
+				cap=4;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(11)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl II
+				cap=5;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(13)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl II
+				cap=6;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(13)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl III
+				cap=7;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(14)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl III
+				cap=8;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(14)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl IV
+				cap=9;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(15)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl IV
+				cap=10;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(15)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl V
+				cap=11;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(16)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				//lvl V
+				cap=12;x=cap;y=0;xMod=1;yMod=1;
+				if(Pixel.State.upgrades.Check(16)) {
+					for(i=0; i!= 4*cap; i++) {
+						ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3;
+						offset = 1;
+						while(ndx%4 != 3) {
+							ndx = (mouseX+x)*4 + (mouseY+y)*Pixel.imageWidth*4 + 3+offset++;
+						}
+						transparency = overlayImageData[ndx];
+						if(transparency != 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+							Pixel.State.numPixels++;
+							Pixel.State.pixelsThisImage++;
+							Pixel.State.stats.pixelsAllTime++;
+							overlayImageData[ndx] = 0;
+						}
+						ndx += 4;
+						if(Math.abs(x) == cap) {
+							xMod *= -1;
+						}
+						x += xMod;
+						if(Math.abs(y) == cap) {
+							yMod *= -1;
+						}
+						y += yMod;
+					}
+				}
+				
+				//Write back to the image
+				overlayImage.data = overlayImageData;
+				ctx.putImageData(overlayImage, 0, 0);
+				$('#pixels').html(Pixel.State.numPixels);
+			}
+		}, false);
+	};
 	Pixel.GetNewImage = function() {
+		try {
+			var canvas = document.getElementById("overlayCanvas");
+			canvas.removeEventListener('mousemove', Pixel.canvasMouseOver);
+		} catch(e) {
+			console.log(e);
+		}
 		//Set up our header auth
 		$.ajaxSetup({
 			headers: { 'Authorization': 'Client-ID 74f45f2bd4ebd51' }
@@ -288,9 +1100,10 @@ Pixel.Init = function() {
 		).done(function() {
 			var index = 0;
 			imgurImage = imgurResponse.responseJSON.data[index];
-			while(imgurImage.link.indexOf("/a/") > -1 || 
+			while(imgurImage.isAlbum || 
 				imgurImage.height < 200 ||
-				imgurImage.width < 75) {
+				imgurImage.width < 75 ||
+				imgurImage.nsfw) {
 				index++;
 				imgurImage = imgurResponse.responseJSON.data[index];
 			}
@@ -302,6 +1115,7 @@ Pixel.Init = function() {
 			imgurImage = null;
 			alert("Error getting image from imgur, have a pretty blue image");
 		}).always(function() {
+			Pixel.State.pixelsThisImage = 0;
 			Pixel.LoadImage(imgurImage);
 		});
 	};
@@ -340,9 +1154,16 @@ Pixel.Init = function() {
 			ctx.drawImage(overlay, 0, 0);
 		} else {
 			ctx.beginPath();
-			ctx.fillStyle = "rgba(0, 0, 0, 1.0)";
+			ctx.fillStyle = "rgba(1, 1, 1, 1.0)";
 			ctx.rect(0, 0, Pixel.imageWidth, Pixel.imageHeight);
 			ctx.fill();
+		}
+			
+		//Mouse Move event for overlay
+		canvas = document.getElementById("overlayCanvas");
+		canvas.addEventListener('mousemove', Pixel.canvasMouseOver);
+		if(Pixel.State.upgrades.Check(10)) {
+			Pixel.TurnOnBombListener();
 		}
 	}
 	
@@ -366,7 +1187,7 @@ Pixel.Init = function() {
 				
 				//Check stuff
 				//If we have the pixel display, turn it on
-				if($.inArray(0, Pixel.State.upgrades.owned) != -1) {
+				if(Pixel.State.upgrades.Check(0)) {
 					$('#currency').css('display','block');
 				}
 				
@@ -377,7 +1198,7 @@ Pixel.Init = function() {
 			}
 		} catch(e) {
 			Pixel.news.push("Error Loading Saved Pixels");
-			console.log(e.message);
+			//console.log(e.message);
 		}
 	};
 	Pixel.DecryptSave = function(str) {
@@ -461,10 +1282,20 @@ Pixel.Init = function() {
 			$('#breakingNews').html(news);
 		}
 		
+		//Refresh the bomb
+		if(!Pixel.State.bombReady) {
+			Pixel.timeToBomb+=1/Pixel.fps;
+			if(Pixel.timeToBomb >= Pixel.baseBombReloadSpeed/(1+0.2*Pixel.State.cursorBombSpeedLvl)) {
+				$('#bomb').css("display","block");
+				Pixel.State.bombReady = true;
+				Pixel.timeToBomb = 0;
+			}
+		}
+		
 		//Run the auto cursor
-		if($.inArray(1, Pixel.State.upgrades.owned) != -1 && !Pixel.pictureComplete) {
+		if(Pixel.State.upgrades.Check(1) && !Pixel.pictureComplete) {
 			Pixel.timeToCursor+=1/Pixel.fps;
-			if(Pixel.timeToCursor >= .1){//Pixel.baseCursorSpeed*(1-0.1*Pixel.State.cursorSpeedLvl)) {
+			if(Pixel.timeToCursor >= Pixel.baseAutoCursorSpeed/(1+0.1*(Pixel.State.autoCursorSpeedLvl-1))) {
 				Pixel.timeToCursor = 0;
 				var canvas = document.getElementById("overlayCanvas");
 				var ctx = canvas.getContext("2d");
@@ -512,10 +1343,12 @@ Pixel.Init = function() {
 					}
 				}
 				Pixel.State.numPixels++;
+				Pixel.State.pixelsThisImage++;
+				Pixel.State.stats.pixelsAllTime++;
 				overlayImageData[ndx] = 0;
 				overlayImage.data = overlayImageData;
 				ctx.putImageData(overlayImage, 0, 0);
-				$('#pixels').html("Pixels: "+Pixel.State.numPixels);
+				$('#pixels').html(Pixel.State.numPixels);
 			}
 		}
 	};

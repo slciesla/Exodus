@@ -1,15 +1,15 @@
 #currency {
 	width: 980px;
-	padding: 10px;
-	height: 40px;
-	border: 1px solid black;
-	margin-bottom: 10px;
+	height: 46px;
+	margin: 10px 0px;
+	font-size: 46px;
+	line-height: 46px;
 }
-.pixel {
+#pixels, #pps {
+	font-family: 'Press Start 2P', sans !important;
 	float: left;
-	width: 1px;
-	height: 1px;
-	background-color: #FFF;
+	font-size: 40px;
+	padding-right: 14px;
 }
 #gameContainer {
 	position: relative;
@@ -155,4 +155,8 @@
 	font-size: 12px;
 	width: 160px;
 	z-index: 100;
+}
+.statName {
+	font-weight: bold;
+	text-decoration: underline;
 }
