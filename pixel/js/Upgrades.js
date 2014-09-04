@@ -13,7 +13,7 @@ function Upgrades() {
 		id: 1,
 		name: "Automatic Cursor",
 		desc: "Automatically collects 1 pixels every 2 seconds for you",
-		cost: 5000,
+		cost: 1000,
 		persist: false,
 		prereq: 0,
 		unlockFunction: Pixel.AutoCursor
@@ -22,7 +22,7 @@ function Upgrades() {
 		id: 2,
 		name: "Auto Cursor Speed",
 		desc: "Cursors collect pixels faster",
-		cost: 5000,
+		cost: 2500,
 		costFunc: Pixel.AutoCursorSpeedCost,
 		tracker: function() { return Pixel.State.autoCursorSpeedLvl; },
 		persist: true,
@@ -33,7 +33,7 @@ function Upgrades() {
 		id: 4,
 		name: "Cursor Size",
 		desc: "Manually collect more pixels at once",
-		cost: 25000,
+		cost: 5000,
 		costFunc: Pixel.CursorSizeCost,
 		tracker: function() { return Pixel.State.cursorSizeLvl; },
 		persist: true,
@@ -84,7 +84,7 @@ function Upgrades() {
 		persist: true,
 		tracker: false,
 		prereq: 6,
-		unlockFunction: Pixel.GetNewImage
+		unlockFunction: Pixel.SkipImage
 	};
 	this.upgrades[10] = {
 		id: 10,
@@ -151,7 +151,38 @@ function Upgrades() {
 		prereq: 15,
 		unlockFunction: Pixel.CursorBombSizeUpgradeV
 	};
-	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16);
+	this.upgrades[17] = {
+		id: 17,
+		name: "Bomb Chain Chance",
+		desc: "Bombs have a chance of triggering another (free) bomb",
+		cost: 25000,
+		costFunc: Pixel.CursorBombChainCost,
+		tracker: function() { return Pixel.State.cursorBombChainLvl; },
+		persist: true,
+		prereq: 10,
+		unlockFunction: Pixel.CursorBombChainUpgrade
+	};
+	this.upgrades[18] = {
+		id: 18,
+		name: "Auto Finish Image",
+		desc: "Unlocks a toggle to have the game automatically start the next image once complete",
+		cost: 75000,
+		persist: false,
+		prereq: 6,
+		unlockFunction: Pixel.AutoFinishImage
+	};
+	this.upgrades[19] = {
+		id: 19,
+		name: "Bomb Max Chain",
+		desc: "Number of bombs that can be triggered in a chain (Warning: Extreme numbers could lag the game on bombing) and there are diminishing returns on successive bombings.",
+		cost: 20000,
+		costFunc: Pixel.CursorBombMaxChainCost,
+		tracker: function() { return Pixel.State.cursorBombMaxChainLvl; },
+		persist: true,
+		prereq: 10,
+		unlockFunction: Pixel.CursorBombMaxChainUpgrade
+	};
+	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18);
 	this.owned = Array();
 }
 

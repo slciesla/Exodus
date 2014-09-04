@@ -13,18 +13,29 @@
  - permission, or profit off it in anyway.
  ----------------------->
  
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-54194101-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
 <script src='libs/snackJS/snack-min.js'></script>
 <script src='libs/jQuery/jquery-1.10.2.min.js'></script>
 <script src='libs/jQuery-ui/ui/minified/jquery-ui.min.js'></script>
 <script src='js/date.format.js'></script>
 <script src='js/seedrandom.js'></script>
-<script src='js/Pixel.js?ver=0.1.0.2'></script>
-<script src='js/Upgrades.js?ver=0.1.0.2'></script>
-<script src='js/Achievements.js?ver=0.1.0.1'></script>
+<script src='js/Pixel.js?ver=1.1.0.0'></script>
+<script src='js/Upgrades.js?ver=1.1.0.0'></script>
+<script src='js/Achievements.js?ver=1.1.0.0'></script>
 
 <link href='https://fonts.googleapis.com/css?family=Press+Start+2P' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="libs/jQuery-ui/themes/base/jquery-ui.css" />
-<link rel="stylesheet" href="css/Pixel.css?ver=0.1.0.1" />
+<link rel="stylesheet" href="css/Pixel.css?ver=1.1.0.0" />
 
 </head>
 <body id='body'>
@@ -35,7 +46,7 @@
 	<div id='currency' style='display: none'>
 		<div style='float: left'>Pixels:&nbsp;</div><div id='pixels'></div>
 		<div style='float: left'>Pixels/Sec:&nbsp;</div><div id='pps'></div>
-		<div style='float: right;display:none;' id='bomb'>B</div>
+		<div id='bomb'>B</div>
 	</div>
 	<div style='width: 600px; float: left;'>
 		<div id='gameContainer' class='container' style='display:none'>
@@ -53,12 +64,18 @@
 			<div id='achievementsHeaderBtn' class='headerButton'>Achievements</div>
 			<div id='menuHeaderBtn' class='headerButton'>Menu</div>
 		</div>
+		<div style='clear: both; height: 1px;'></div>
+		<div id='nextImage' class='headerButton'>Get Next Image</div>
+		<div id='autoFinishToggle' class='headerButton' style='display: none; cursor: default;'>
+			<input type="checkbox" id='autoFinishCheckbox' />Auto Fetch Image
+		</div>
 		<div id='info'></div>
 		<br />
 		<div class='infoHeader'>Breaking News</div>
 		<div id='breakingNews'></div>
 	</div>
 	<div style='clear: both; height: 20px;'></div>
+	<div id='version'></div>
 	<div style='margin: 0px auto; text-align: center;'>All images are courtesy of <a href='http://imgur.com' target='_blank'>Imgur</a> and subject to the <a href='http://imgur.com/tos' target='_blank'>Imgur Image TOS</a></div>
 </div>
 </body>
