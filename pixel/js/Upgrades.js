@@ -154,7 +154,7 @@ function Upgrades() {
 	this.upgrades[17] = {
 		id: 17,
 		name: "Bomb Chain Chance",
-		desc: "Bombs have a chance of triggering another (free) bomb",
+		desc: "Increases chance of bombs triggering another bomb",
 		cost: 25000,
 		costFunc: Pixel.CursorBombChainCost,
 		tracker: function() { return Pixel.State.cursorBombChainLvl; },
@@ -174,7 +174,7 @@ function Upgrades() {
 	this.upgrades[19] = {
 		id: 19,
 		name: "Bomb Max Chain",
-		desc: "Number of bombs that can be triggered in a chain (Warning: Extreme numbers could lag the game on bombing) and there are diminishing returns on successive bombings.",
+		desc: "Increases number of bombs that can be triggered in a chain. There are diminishing returns on successive bombings.",
 		cost: 20000,
 		costFunc: Pixel.CursorBombMaxChainCost,
 		tracker: function() { return Pixel.State.cursorBombMaxChainLvl; },
@@ -182,7 +182,16 @@ function Upgrades() {
 		prereq: 10,
 		unlockFunction: Pixel.CursorBombMaxChainUpgrade
 	};
-	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18);
+	this.upgrades[20] = {
+		id: 20,
+		name: "Pixel Color",
+		desc: "Unlocks a slider that allows you to change the pixel color",
+		cost: 100000,
+		persist: false,
+		prereq: 6,
+		unlockFunction: Pixel.PixelColorUnlock
+	};
+	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18,20);
 	this.owned = Array();
 }
 

@@ -29,13 +29,13 @@
 <script src='libs/jQuery-ui/ui/minified/jquery-ui.min.js'></script>
 <script src='js/date.format.js'></script>
 <script src='js/seedrandom.js'></script>
-<script src='js/Pixel.js?ver=1.1.0.0'></script>
-<script src='js/Upgrades.js?ver=1.1.0.0'></script>
-<script src='js/Achievements.js?ver=1.1.0.0'></script>
+<script src='js/Pixel.js?ver=1.2.1.1'></script>
+<script src='js/Upgrades.js?ver=1.2.1.1'></script>
+<script src='js/Achievements.js?ver=1.2.1.1'></script>
 
 <link href='https://fonts.googleapis.com/css?family=Press+Start+2P' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="libs/jQuery-ui/themes/base/jquery-ui.css" />
-<link rel="stylesheet" href="css/Pixel.css?ver=1.1.0.0" />
+<link rel="stylesheet" href="css/Pixel.css?ver=1.2.1.1" />
 
 </head>
 <body id='body'>
@@ -65,10 +65,20 @@
 			<div id='menuHeaderBtn' class='headerButton'>Menu</div>
 		</div>
 		<div style='clear: both; height: 1px;'></div>
-		<div id='nextImage' class='headerButton'>Get Next Image</div>
-		<div id='autoFinishToggle' class='headerButton' style='display: none; cursor: default;'>
-			<input type="checkbox" id='autoFinishCheckbox' />Auto Fetch Image
+		<div id='headerButtons'>
+			<div id='autoFinishToggle' class='headerButton' style='display: none; cursor: default;'>
+				<input type="checkbox" id='autoFinishCheckbox' />Auto Image
+			</div>
+			<div id='colorSliderContainer' class='headerButton' style='width: 135px; float: left;display:none;'>
+				<span style='float: left; padding-right: 12px;'>Color: </span>
+				<div style='float: left; width: 80px;'><div id="colorSlider"></div></div>
+			</div>
+			<div id='imageHistoryHeaderBtn' class='headerButton'>History</div>
 		</div>
+		<div style='clear: both; height: 1px;'></div>
+		<div id='nextImage' class='headerButton'>Get Next Image</div>
+		
+		<div style='clear: both; height: 1px;'></div>
 		<div id='info'></div>
 		<br />
 		<div class='infoHeader'>Breaking News</div>
