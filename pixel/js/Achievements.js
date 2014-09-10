@@ -488,6 +488,54 @@ function Achievements() {
 		image: "start6.png",
 		achievedOn: ""
 	};
+	this.chievos[90] = {
+		name: "Partier I",
+		hidden: false,
+		beforeDesc: "Have a pixel party!",
+		desc: "You had your first pixel party!",
+		image: "party1.png",
+		achievedOn: ""
+	};
+	this.chievos[91] = {
+		name: "Partier II",
+		hidden: false,
+		beforeDesc: "Have 10 pixel parties",
+		desc: "You've had 10 pixel parties",
+		image: "party2.png",
+		achievedOn: ""
+	};
+	this.chievos[92] = {
+		name: "Partier III",
+		hidden: false,
+		beforeDesc: "Have 50 pixel parties",
+		desc: "You've had 50 pixel parties",
+		image: "party3.png",
+		achievedOn: ""
+	};
+	this.chievos[93] = {
+		name: "Partier IV",
+		hidden: false,
+		beforeDesc: "Have 100 pixel parties",
+		desc: "You've had 100 pixel parties",
+		image: "party4.png",
+		achievedOn: ""
+	};
+	this.chievos[94] = {
+		name: "Partier V",
+		hidden: false,
+		beforeDesc: "Have 1000 pixel parties",
+		desc: "You've had 1000 pixel parties",
+		image: "party5.png",
+		achievedOn: ""
+	};
+	this.chievos[95] = {
+		name: "Party Pooper",
+		hidden: true,
+		beforeDesc: "Miss 1000 pixel parties",
+		desc: "You've missed 1000 pixel parties :-(",
+		image: "partypooper.png",
+		achievedOn: ""
+	};
 	this.chievoList = Array(80,81,82,83,84,85,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,30,31,32,33,34,40,41,
 		42,43,44,45,46,47,60,61,62,63,64,70,71,72,73,74,50,51,52,53,54,55,56);
 	this.achieved = Array();

@@ -250,3 +250,12 @@
 	font-weight: bold;
 	color: skyblue;
 }
+#partyPixel {
+    height: 50px;
+    width: 50px;
+    background-color: magenta;
+    z-index: 5;
+    position: fixed;
+    top: 100px;
+    left: 100px;
+}
