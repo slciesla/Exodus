@@ -25,16 +25,21 @@ Pixel.Init = function() {
 			Pixel.autoFinishTime = 300; //Let auto finish trigger after 5 min
 			Pixel.tabRefreshTime = 1;
 			Pixel.baseTimeToParty = 600; //Party Pixel every 10 min
+			Pixel.basePartyTime = 15; //Parties last 15s
+			Pixel.basePartyRefresh = 1;
 			
 			//---------------------------
 			//Non-saved vars
 			//---------------------------
 			Pixel.timeToSave = 0;
 			Pixel.timeToCursor = 0;
+			Pixel.timeToPartyCursor = 0;
 			Pixel.timeToBomb = 0;
 			Pixel.timeToAutoFinish = 0;
 			Pixel.timeToTabRefresh = 0;
 			Pixel.timeToParty = 0;
+			Pixel.timeToPartyRefresh = 0;
+			Pixel.partyTimeLeft = 0;
 			Pixel.newsId = 0;
 			Pixel.delay = 0;
 			Pixel.imageWidth = Pixel.maxWidth;
@@ -49,6 +54,7 @@ Pixel.Init = function() {
 			Pixel.nextImageButtonListener = null;
 			Pixel.bombChain = 0;
 			Pixel.partyTime = false;
+			Pixel.nextPartyTime = true;
 			
 			//---------------------------
 			//State Variables that will be saved
@@ -330,6 +336,14 @@ Pixel.Init = function() {
 					);
 				}
 			);
+
+			Pixel.partyPixelEventListener = snack.listener({node: document.getElementById('partyPixel'),
+				event: 'click'},
+				function (){
+					Pixel.PartyPixelClick();
+				}
+			);
+			Pixel.partyPixelEventListener.detach();
 			
 			$('#gameContainer').css('display','block');
 			$('#version').html(Pixel.version);
@@ -480,10 +494,16 @@ Pixel.Init = function() {
 	
 	//Other Functions
 	Pixel.ChangePixelColor = function(color) {
-		Pixel.State.color = color;
+	    var clr = color;
+	    if(clr != "random") {
+		    Pixel.State.color = clr;
+	    }
 		for(var ndx = 0; ndx != Pixel.imageHeight*Pixel.imageWidth*4; ndx++) {
 			if(ndx%4 != 3) {
-				Pixel.overlayImageData.data[ndx] = color;
+                if(clr == "random") {
+                    clr = (Math.floor(Math.random()*1000)+ndx)%255;
+                }
+				Pixel.overlayImageData.data[ndx] = clr;
 			}
 		}
 		Pixel.WriteOverlayData();
@@ -534,10 +554,15 @@ Pixel.Init = function() {
 		var i=0;
 		var x=0, y=0, xMod=1, yMod=1, cap=0;
 		Pixel.CollectPixel(mouseX, mouseY, x, y, "Manual");
-		
-		while(Pixel.State.cursorSizeLvl > 4*cap ) {
+
+		var lvl = Pixel.State.cursorSizeLvl;
+		if(Pixel.partyTime) {
+		    lvl *= 2;
+		}
+
+		while(lvl > 4*cap ) {
 			cap++;x=cap;y=0;xMod=1;yMod=1;
-			var limit = Math.min(4*cap,(Pixel.State.cursorSizeLvl-1-(4*(cap-1))));
+			var limit = Math.min(4*cap,(lvl-1-(4*(cap-1))));
 			for(i=0; i!= limit; i++) {
 				Pixel.CollectPixel(mouseX, mouseY, x, y, "Manual");
 				if(Math.abs(x) == cap) {
@@ -1305,6 +1330,31 @@ Pixel.Init = function() {
 			}
 		}
 	};
+
+	Pixel.LaunchPartyPixel = function() {
+	    Pixel.partyPixelEventListener.attach();
+	    $('#partyPixel').css('display', 'block');
+	    //start the pixel somewhere from the top
+		$('#partyPixel').css('top', Math.random()*99+'%');
+		$('#partyPixel').css('left', '-50px');
+		$('#partyPixel').animate(
+		    {left: "110%"},
+            7500,
+            function(){Pixel.State.stats.partiesMissed++;}
+		);
+	}
+
+	Pixel.PartyPixelClick = function() {
+	    Pixel.partyPixelEventListener.detach();
+	    $('#partyPixel').stop();
+	    $('#partyPixel').css('display', 'none');
+		$('#partyPixel').css('top', '-100px');
+		$('#partyPixel').css('left', '-100px');
+		Pixel.State.stats.partiesHad++;
+        Pixel.partyTime = true;
+        Pixel.nextPartyTime = false;
+        $("#colorSlider").attr('disabled',true);
+	}
 	
 	//---------------------------
 	//Handle the Processing
@@ -1348,6 +1398,30 @@ Pixel.Init = function() {
 			ga('send', 'event', 'stats', 'currPixels', Pixel.State.numPixels);
 			ga('send', 'event', 'stats', 'allPixels', Pixel.State.stats.pixelsAllTime);
 		}
+
+		//PaRtY PiXeL!
+		Pixel.timeToParty+=1/Pixel.fps;
+		if(Pixel.timeToParty >= Pixel.baseTimeToParty && Pixel.nextPartyTime) {
+			Pixel.timeToParty = 0;
+			Pixel.nextPartyTime = false;
+			Pixel.LaunchPartyPixel();
+			ga('send', 'event', 'stats', 'partypixel');
+		}
+		if(Pixel.partyTime) {
+		    Pixel.partyTimeLeft+=1/Pixel.fps;
+		    if(Pixel.partyTimeLeft >= Pixel.basePartyTime) {
+		        //Party time over
+		        Pixel.partyTime = false;
+		        Pixel.nextPartyTime = true;
+		        Pixel.partyTimeLeft = 0;
+                $("#colorSlider").attr('disabled',false);
+		    }
+		    Pixel.timeToPartyRefresh+=1/Pixel.fps;
+		    if(Pixel.timeToPartyRefresh >= Pixel.basePartyRefresh) {
+                Pixel.timeToPartyRefresh = 0;
+                Pixel.ChangePixelColor("random");
+		    }
+		}
 		
 		//Write the news
 		if(Pixel.lastNews != Pixel.news.length) {
@@ -1362,8 +1436,11 @@ Pixel.Init = function() {
 		}
 		
 		//Refresh the bomb
-		if(!Pixel.State.bombReady) {
+		if(Pixel.State.upgrades.Check(10) && !Pixel.State.bombReady) {
 			Pixel.timeToBomb+=1/Pixel.fps;
+			if(Pixel.partyTime) {
+			    Pixel.timeToBomb+=1/Pixel.fps;
+			}
 			if(Pixel.timeToBomb >= Pixel.baseBombReloadSpeed/(1+0.2*Pixel.State.cursorBombSpeedLvl)) {
 				$('#bomb').css("display","block");
 				Pixel.State.bombReady = true;
@@ -1374,6 +1451,9 @@ Pixel.Init = function() {
 		//Run the auto cursor
 		if(Pixel.State.upgrades.Check(1) && !Pixel.pictureComplete) {
 			Pixel.timeToCursor+=1/Pixel.fps;
+			if(Pixel.partyTime) {
+			    Pixel.timeToCursor+=1/Pixel.fps;
+			}
 			if(Pixel.timeToCursor >= Pixel.baseAutoCursorSpeed/(1+0.5*(Pixel.State.autoCursorSpeedLvl-1))) {
 				Pixel.timeToCursor = 0;
 				
