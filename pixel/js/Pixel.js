@@ -14,7 +14,7 @@ Pixel.Init = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Pixel.version = 'v1.0.3';
+			Pixel.version = 'v1.0.4';
 			Pixel.initialized = 1;
 			Pixel.fps = 120;
 			Pixel.saveEvery = 300; //Save every 5 min
@@ -69,7 +69,7 @@ Pixel.Init = function() {
 			Pixel.State.manualBombsThisImage = 0;
 			Pixel.State.lastRandX = 0;
 			Pixel.State.lastRandY = 0;
-			Pixel.State.image = null;
+			Pixel.State.image = undefined;
 			Pixel.State.overlay = null;
 			Pixel.State.cursorSizeLvl = 1;
 			Pixel.State.autoCursorSpeedLvl = 0;
@@ -123,7 +123,7 @@ Pixel.Init = function() {
 			}
 			
 			//If we don't have an image stored, get one
-			if(Pixel.State.image == null) {
+			if(Pixel.State.image == undefined) {
 				Pixel.GetNewImage();
 			} else {
 				//Otherwise we have an image, load the existing one
@@ -326,7 +326,7 @@ Pixel.Init = function() {
 					txt += "<div id='saveGameButton' class='headerButton'>Save Game</div>";
 					txt += "<div style='height: 5px; clear: both;'></div>";
 					txt += "<div style='font-size: 0.7em'>Note: Game is saved automatically every 5 min</div><br />";
-					txt += "Save Game State (copy this and save it somewhere safe, will not save image/overlay state):<br />";
+					txt += "Save Game State (copy this and save it somewhere safe):<br />";
 					txt += "<textarea style='height:125px; width:330px;'>"+Pixel.ExportSave()+"</textarea>";
 					txt += "<br /><br />";
 					txt += "Load Game State (paste the code you saved previously):<br />";
@@ -561,7 +561,7 @@ Pixel.Init = function() {
 		var canvas = document.getElementById("overlayCanvas");
 		var ctx = canvas.getContext("2d");
 		ctx.putImageData(Pixel.overlayImageData, 0, 0);
-	}
+	};
 	
 	Pixel.canvasMouseOver = function(evt) {
 		var canvas = document.getElementById("overlayCanvas");
@@ -736,7 +736,7 @@ Pixel.Init = function() {
 				}
 			}
 		}
-	}
+	};
 	
 	Pixel.SkipImage = function() {
 		ga('send', 'event', 'global', 'skipimage');
@@ -744,7 +744,7 @@ Pixel.Init = function() {
 		Pixel.State.stats.picturesSkipped++;
 		Pixel.State.history.push({
 			skipped: true,
-			link: "http://imgur.com/gallery/"+Pixel.State.image.id,
+			link: Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id),
 			time: Math.floor(Pixel.State.stats.timePlayedPicture)
 		});
 
@@ -777,7 +777,7 @@ Pixel.Init = function() {
 		}
 
 		Pixel.GetNewImage();
-	}
+	};
 	
 	Pixel.GetNewImage = function() {
 		ga('send', 'event', 'global', 'newimage');
@@ -807,7 +807,6 @@ Pixel.Init = function() {
 			}
 		}).fail(function() {
 			//If we failed to get an image, just
-			imgurImage = {};
 			imgurImage.id = "blue";
 			imgurImage.height = 800;
 			imgurImage.width = 600;
@@ -873,7 +872,7 @@ Pixel.Init = function() {
 		//Mouse Move event for overlay
 		canvas = document.getElementById("overlayCanvas");
 		canvas.addEventListener('mousemove', Pixel.canvasMouseOver);
-	}
+	};
 
 	Pixel.GetImageLink = function(image, text) {
 	    if(image.id == "blue") {
@@ -881,7 +880,7 @@ Pixel.Init = function() {
 	    } else {
 			return "<a href='http://imgur.com/gallery/" + image.id + "' target='_blank'>" + text + "</a>";
 	    }
-	}
+	};
 
 	//---------------------------
 	//Load & Import the Game
@@ -893,10 +892,6 @@ Pixel.Init = function() {
 				//This only runs into issues if variables change, which means we'll need special cases 
 				//whenever that happens.
 				jQuery.extend(true,Pixel.State,JSON.parse(localStorage.getItem("thePixels")));
-				
-				if(Pixel.State.overlay == null || Pixel.State.overlay == undefined) {
-					location.reload();
-				}
 				
 				Pixel.news.push(" ");
 				Pixel.news.push("Pixels Loaded Successfully");
@@ -944,14 +939,14 @@ Pixel.Init = function() {
 			i+=2;
 		}
 		return retval;
-	}
+	};
 	Pixel.ImportSave = function(save) {
 		if (save && save!='') {
 			Pixel.State = JSON.parse(Pixel.DecryptSave(save));
 		}
 		Pixel.SaveGame(false);
 		location.reload();
-	}
+	};
 	
 	//---------------------------
 	//Save & Export the Game
@@ -963,13 +958,11 @@ Pixel.Init = function() {
 			retval += str.charCodeAt(i++).toString(16);
 		}
 		return retval;
-	}
+	};
 	Pixel.ExportSave = function() {
 		var state = Pixel.State;
-		state.image = null;
-		state.overlay = null;
 		return Pixel.EncryptSave(JSON.stringify(state));
-	}
+	};
 	
 	Pixel.SaveGame = function(saveCanvas) {
 		Pixel.UpdateCheck();
@@ -981,6 +974,7 @@ Pixel.Init = function() {
 		}
 		//Save the game
 		var thePixels = JSON.stringify(Pixel.State);
+		localStorage.removeItem("thePixels");
 		localStorage.setItem("thePixels", thePixels);
 		Pixel.news.push("Pixels Saved");
 	};
@@ -1208,7 +1202,7 @@ Pixel.Init = function() {
 			}
 		} else if(Pixel.State.stats.pixelsManuallyCollected >= 1000000) {
 			if($.inArray(21, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(21), "http://imgur.com/gallery/"+Pixel.State.image.id;
+				Pixel.State.achievements.UnlockAchievement(21, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 21');
 			}
 		} else if(Pixel.State.stats.pixelsManuallyCollected >= 1000) {
@@ -1413,7 +1407,7 @@ Pixel.Init = function() {
             15000,
             function(){Pixel.State.stats.partiesMissed++;}
 		);
-	}
+	};
 
 	Pixel.PartyPixelClick = function() {
 	    Pixel.partyPixelEventListener.detach();
@@ -1429,7 +1423,7 @@ Pixel.Init = function() {
         Pixel.partyTime = true;
         $("#colorSlider").attr('disabled',true);
         Pixel.ChangePixelColor("party");
-	}
+	};
 	
 	//---------------------------
 	//Handle the Processing
@@ -1619,8 +1613,6 @@ Pixel.Init = function() {
 			Pixel.Logic();
 			Pixel.delay-=1000/Pixel.fps;
 		}
-		
-		//Pixel.Draw();
 		
 		setTimeout(Pixel.Loop,1000/Pixel.fps);
 	};
