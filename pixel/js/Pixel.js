@@ -14,7 +14,7 @@ Pixel.Init = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Pixel.version = 'Beta v1.2.1.1';
+			Pixel.version = 'v1.0.3';
 			Pixel.initialized = 1;
 			Pixel.fps = 120;
 			Pixel.saveEvery = 300; //Save every 5 min
@@ -26,7 +26,10 @@ Pixel.Init = function() {
 			Pixel.tabRefreshTime = 1;
 			Pixel.baseTimeToParty = 600; //Party Pixel every 10 min
 			Pixel.basePartyTime = 15; //Parties last 15s
-			Pixel.basePartyRefresh = 1;
+			Pixel.basePartyRefresh = 0.5;
+			Pixel.colors = ['Magenta', 'Aqua', 'Bisque', 'BlueViolet', 'Chartreuse', 'DarkGreen', 
+							'DeepPink', 'GreenYellow', 'LightCoral', 'Maroon', 'MidnightBlue', 
+							'OrangeRed', 'Red', 'Yellow', 'WhiteSmoke', 'SandyBrown', 'Salmon', 'RoyalBlue'];
 			
 			//---------------------------
 			//Non-saved vars
@@ -54,7 +57,8 @@ Pixel.Init = function() {
 			Pixel.nextImageButtonListener = null;
 			Pixel.bombChain = 0;
 			Pixel.partyTime = false;
-			Pixel.nextPartyTime = true;
+			Pixel.imageLink = "";
+			Pixel.partyOverlay = null;
 			
 			//---------------------------
 			//State Variables that will be saved
@@ -62,6 +66,7 @@ Pixel.Init = function() {
 			Pixel.State.firstPlay = Pixel.time;
 			Pixel.State.numPixels = 0;
 			Pixel.State.pixelsThisImage = 0;
+			Pixel.State.manualBombsThisImage = 0;
 			Pixel.State.lastRandX = 0;
 			Pixel.State.lastRandY = 0;
 			Pixel.State.image = null;
@@ -94,6 +99,7 @@ Pixel.Init = function() {
 			Pixel.State.stats.pixelsBombCollected = 0;
 			Pixel.State.stats.maxBombChain = 0;
 			Pixel.State.stats.manualPixelsThisImage = 0;
+			Pixel.State.stats.bombsLaunched = 0;
 			Pixel.State.stats.alreadyUncovered = 0;
 			Pixel.State.stats.partiesHad = 0;
 			Pixel.State.stats.partiesMissed = 0;
@@ -110,7 +116,8 @@ Pixel.Init = function() {
 			//Setup
 			var index = 0;
 			$('#pixels').html(Pixel.State.numPixels);
-			$('#pps').html(((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2));
+			var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2);
+			$('#pps').html(pps);
 			if(Pixel.State.autoCursorSpeedLvl == 0) {
 				$('#pps').html("0");
 			}
@@ -206,8 +213,7 @@ Pixel.Init = function() {
 					var txt = "<div id='infoHeader' class='infoHeader'>Image Information:</div><br />";
 					if(Pixel.State.upgrades.Check(5)) {
 						txt += "<span class='statName'>Image Title:</span> " + Pixel.State.image.title + "<br />";
-						txt += "<span class='statName'>Image Source:</span> <a href='http://imgur.com/gallery/" + 
-							Pixel.State.image.id + "' target='_blank'>Gallery Link</a><br />";
+						txt += "<span class='statName'>Image Source:</span> " + Pixel.GetImageLink(Pixel.State.image, "Gallery Link") + "<br />";
 						txt += "<span class='statName'>Upload Date:</span> "+dateFormat(Pixel.State.image.datetime*1000)+dateFormat(Pixel.State.image.datetime*1000,"Z")+"<br />";
 					} else {
 						txt += "<div>Requires Purchase!</div><br /><br />";
@@ -236,6 +242,7 @@ Pixel.Init = function() {
 					}
 					if(Pixel.State.upgrades.Check(8)) {
 						txt += "<span class='statName'>Total Pixels In Image:</span> "+Pixel.imageWidth*Pixel.imageHeight+"<br />";
+						txt += "<span class='statName'>Image % Complete:</span> "+((Pixel.State.pixelsThisImage/(Pixel.imageWidth*Pixel.imageHeight))*100).toFixed(2)+"<br />";
 						txt += "<span class='statName'>Fastest Picture Completion:</span> "+Math.floor(Pixel.State.stats.bestPictureTime)+" seconds<br />";
 						txt += "<span class='statName'>Slowest Picture Completion:</span> "+Math.floor(Pixel.State.stats.worstPictureTime)+" seconds<br />";
 						txt += "<span class='statName'>Pictures Completed:</span> "+Pixel.State.stats.picturesCompleted+"<br />";
@@ -251,14 +258,16 @@ Pixel.Init = function() {
 					$("#info").html("");
 					var txt = "<div id='infoHeader' class='infoHeader'>Image History:</div><br />";
 					for(var i = Pixel.State.history.length; i != 0; i--) {
+					    if(Pixel.State.history[i-1].id === undefined) {
+					        var splt = Pixel.State.history[i-1].link.split('/');
+					        Pixel.State.history[i-1].id = splt[splt.length-1];
+					    }
 						if(Pixel.State.history[i-1].skipped) {
-							txt += "Image "+i+": <a target='_blank' href='"+Pixel.State.history[i-1].link+"'>"
-									+Pixel.State.history[i-1].link+"</a> skipped after "
-									+Pixel.State.history[i-1].time+" seconds";
+							txt += "Image "+i+": " + Pixel.GetImageLink(Pixel.State.history[i-1], Pixel.State.history[i-1].id) +
+							        " skipped after "+Pixel.State.history[i-1].time+" seconds";
 						} else {
-							txt += "Image "+i+": <a target='_blank' href='"+Pixel.State.history[i-1].link+"'>"
-									+Pixel.State.history[i-1].link+"</a> completed in "
-									+Pixel.State.history[i-1].time+" seconds";
+							txt += "Image "+i+": " + Pixel.GetImageLink(Pixel.State.history[i-1], Pixel.State.history[i-1].id) +
+							        " completed in "+Pixel.State.history[i-1].time+" seconds";
 						}
 						txt += "<br />";
 					}
@@ -277,21 +286,23 @@ Pixel.Init = function() {
 					var chievos = Pixel.State.achievements.chievos;
 					var ndx = Pixel.State.achievements.chievoList;
 					var achieved = Pixel.State.achievements.achieved;
+					var achievedOn = Pixel.State.achievements.achievedOn;
 					txt += achieved.length+"/"+ndx.length+" achieved";
 					for(var i=0; i!= ndx.length; i++) {
 						//Achieved
-						if($.inArray(ndx[i], achieved) != -1) {
+						var ndx2 = $.inArray(ndx[i], achieved);
+						if(ndx2 != -1) {
 							txt += "<div class='chievo achieved'><span class='chievoName'>"+chievos[ndx[i]].name+": </span>";
 							txt += chievos[ndx[i]].desc
 							txt += "<br />"
 							if(Pixel.State.upgrades.Check(5)) {
-								if(chievos[ndx[i]].achievedOn != null && chievos[ndx[i]].achievedOn != "") {
-									txt += "<a style='color: #FFF;' target='_blank' href='"+chievos[ndx[i]].achievedOn+"'>Achieved On</a>";
+								if(achievedOn[ndx2] != null && achievedOn[ndx2] != "") {
+									txt += "Achieved on: " + achievedOn[ndx2];
 								} else {
 									txt += "Achieved Long Ago";
 								}
 							} else {
-								txt += "Link Requires Info Purchase";
+								txt += "Achieved Link Requires Info Purchase";
 							}
 							txt += "</div>";
 						//Hidden
@@ -315,7 +326,7 @@ Pixel.Init = function() {
 					txt += "<div id='saveGameButton' class='headerButton'>Save Game</div>";
 					txt += "<div style='height: 5px; clear: both;'></div>";
 					txt += "<div style='font-size: 0.7em'>Note: Game is saved automatically every 5 min</div><br />";
-					txt += "Save Game State (copy this and save it somewhere safe):<br />";
+					txt += "Save Game State (copy this and save it somewhere safe, will not save image/overlay state):<br />";
 					txt += "<textarea style='height:125px; width:330px;'>"+Pixel.ExportSave()+"</textarea>";
 					txt += "<br /><br />";
 					txt += "Load Game State (paste the code you saved previously):<br />";
@@ -385,12 +396,20 @@ Pixel.Init = function() {
 	};
 	Pixel.AutoCursor = function() {
 		Pixel.State.autoCursorSpeedLvl = 1;
-		$('#pps').html(((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2));
+		var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2);
+		if(Pixel.partyTime) {
+			pps *= 2;
+		}
+		$('#pps').html(pps);
 		Pixel.State.upgrades.owned.push(1);
 	};
 	Pixel.AutoCursorSpeedUpgrade = function() {
 		Pixel.State.autoCursorSpeedLvl++;
-		$('#pps').html(((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2));
+		var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2);
+		if(Pixel.partyTime) {
+			pps *= 2;
+		}
+		$('#pps').html(pps);
 	};
 	Pixel.CursorSizeUpgrade = function() {
 		Pixel.State.cursorSizeLvl++;
@@ -403,7 +422,7 @@ Pixel.Init = function() {
 	};
 	Pixel.AdvancedInfoUnlock = function() {
 		Pixel.State.upgrades.owned.push(6);
-		Pixel.State.achievements.UnlockAchievement(52, "http://imgur.com/gallery/"+Pixel.State.image.id);
+		Pixel.State.achievements.UnlockAchievement(52, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 		ga('send', 'event', 'achievement', 'unlock', 'Chievo 52');
 	};
 	Pixel.BasicStatsUnlock = function() {
@@ -411,7 +430,7 @@ Pixel.Init = function() {
 	};
 	Pixel.AdvancedStatsUnlock = function() {
 		Pixel.State.upgrades.owned.push(8);
-		Pixel.State.achievements.UnlockAchievement(53, "http://imgur.com/gallery/"+Pixel.State.image.id);
+		Pixel.State.achievements.UnlockAchievement(53, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 		ga('send', 'event', 'achievement', 'unlock', 'Chievo 53');
 	};
 	Pixel.CursorBombUnlock = function() {
@@ -495,15 +514,20 @@ Pixel.Init = function() {
 	//Other Functions
 	Pixel.ChangePixelColor = function(color) {
 	    var clr = color;
-	    if(clr != "random") {
+	    if(clr != "party") {
 		    Pixel.State.color = clr;
 	    }
-		for(var ndx = 0; ndx != Pixel.imageHeight*Pixel.imageWidth*4; ndx++) {
+		for(var ndx = 0; ndx < Pixel.imageHeight*Pixel.imageWidth*4; ndx++) {
 			if(ndx%4 != 3) {
-                if(clr == "random") {
-                    clr = (Math.floor(Math.random()*1000)+ndx)%255;
-                }
-				Pixel.overlayImageData.data[ndx] = clr;
+			    if(clr == "party") {
+			        Pixel.overlayImageData.data[ndx] = Pixel.partyOverlay[ndx++];
+			        Pixel.overlayImageData.data[ndx] = Pixel.partyOverlay[ndx++];
+			        Pixel.overlayImageData.data[ndx] = Pixel.partyOverlay[ndx++];
+			    } else {
+				    Pixel.overlayImageData.data[ndx++] = clr;
+				    Pixel.overlayImageData.data[ndx++] = clr;
+				    Pixel.overlayImageData.data[ndx++] = clr;
+			    }
 			}
 		}
 		Pixel.WriteOverlayData();
@@ -563,6 +587,9 @@ Pixel.Init = function() {
 		while(lvl > 4*cap ) {
 			cap++;x=cap;y=0;xMod=1;yMod=1;
 			var limit = Math.min(4*cap,(lvl-1-(4*(cap-1))));
+			if(Pixel.partyTime) {
+				limit *= 2;
+			}
 			for(i=0; i!= limit; i++) {
 				Pixel.CollectPixel(mouseX, mouseY, x, y, "Manual");
 				if(Math.abs(x) == cap) {
@@ -621,6 +648,10 @@ Pixel.Init = function() {
 	};
 	
 	Pixel.NewBombCanvas = function(mouseX, mouseY, turn) {
+		if(turn == 0) {
+			Pixel.State.stats.bombsLaunched++;
+			Pixel.State.manualBombsThisImage++;
+		}
 		//lvl base
 		var i=0;
 		var x=0, y=0, xMod=1, yMod=1, cap=0;
@@ -690,7 +721,11 @@ Pixel.Init = function() {
 				while(ndx%4 != 3) {
 					ndx = randX*4 + randY*Pixel.imageWidth*4 + 3+offset++;
 				}
-				if(Pixel.bombChain < Pixel.State.cursorBombMaxChainLvl) {
+				var chain = Pixel.State.cursorBombMaxChainLvl;
+				if(Pixel.partyTime) {
+					chain *= 2;
+				}
+				if(Pixel.bombChain < chain) {
 					Pixel.bombChain++;
 					if(Pixel.bombChain > Pixel.State.stats.maxBombChain) {
 						Pixel.State.stats.maxBombChain = Pixel.bombChain;
@@ -712,11 +747,41 @@ Pixel.Init = function() {
 			link: "http://imgur.com/gallery/"+Pixel.State.image.id,
 			time: Math.floor(Pixel.State.stats.timePlayedPicture)
 		});
+
+		//Check chievos
+		if(Pixel.State.stats.picturesSkipped >= 100) {
+			if($.inArray(74, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(74, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		} else if(Pixel.State.stats.picturesSkipped >= 50) {
+			if($.inArray(73, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(73, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		} else if(Pixel.State.stats.picturesSkipped >= 25) {
+			if($.inArray(72, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(72, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		} else if(Pixel.State.stats.picturesSkipped >= 5) {
+			if($.inArray(71, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(71, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		} else if(Pixel.State.stats.picturesSkipped >= 1) {
+			if($.inArray(70, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(70, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		}
+
 		Pixel.GetNewImage();
 	}
 	
 	Pixel.GetNewImage = function() {
 		ga('send', 'event', 'global', 'newimage');
+		var imgurImage = {};
 		try {
 			var canvas = document.getElementById("overlayCanvas");
 			canvas.removeEventListener('mousemove', Pixel.canvasMouseOver);
@@ -733,25 +798,30 @@ Pixel.Init = function() {
 		).done(function() {
 			var index = 0;
 			imgurImage = imgurResponse.responseJSON.data[index];
-			while(imgurImage.is_album || 
+			while(imgurImage.is_album ||
 				imgurImage.height < 200 ||
 				imgurImage.width < 75 ||
 				imgurImage.nsfw) {
 				index++;
 				imgurImage = imgurResponse.responseJSON.data[index];
 			}
-			Pixel.State.image = imgurImage;
-			//We got a new image, reset the overlay
-			Pixel.State.overlay = null;
 		}).fail(function() {
-			//If we failed to get an image, just 
-			imgurImage = null;
+			//If we failed to get an image, just
+			imgurImage = {};
+			imgurImage.id = "blue";
+			imgurImage.height = 800;
+			imgurImage.width = 600;
+			imgurImage.link = "images/blue.png";
 			Pixel.news.push("Error getting image from imgur, have a pretty blue image");
 		}).always(function() {
 			Pixel.pictureComplete = false;
+			//We got a new image, reset the game
+			Pixel.State.overlay = null;
+			Pixel.State.image = imgurImage;
 			Pixel.State.pixelsThisImage = 0;
 			Pixel.State.stats.timePlayedPicture = 0;
 			Pixel.State.stats.manualPixelsThisImage = 0;
+			Pixel.State.manualBombsThisImage = 0;
 			Pixel.State.lastRandX = 0;
 			Pixel.State.lastRandY = 0;
 			Pixel.LoadImage(imgurImage);
@@ -804,19 +874,30 @@ Pixel.Init = function() {
 		canvas = document.getElementById("overlayCanvas");
 		canvas.addEventListener('mousemove', Pixel.canvasMouseOver);
 	}
-	
+
+	Pixel.GetImageLink = function(image, text) {
+	    if(image.id == "blue") {
+	        return "Blue Image";
+	    } else {
+			return "<a href='http://imgur.com/gallery/" + image.id + "' target='_blank'>" + text + "</a>";
+	    }
+	}
+
 	//---------------------------
 	//Load & Import the Game
 	//---------------------------
 	Pixel.LoadGame = function() {
 		try {
-			if(localStorage.thePixels != JSON.stringify({})) {
+			if(localStorage.getItem("thePixels") != JSON.stringify({})) {
 				//We want to extend the state so that if the user is loading an old version, it works.
 				//This only runs into issues if variables change, which means we'll need special cases 
 				//whenever that happens.
-				jQuery.extend(true,Pixel.State,JSON.parse(localStorage.thePixels));
-				Pixel.news.push(" ");
-				Pixel.news.push("If the image has no overlay, please refresh the page");
+				jQuery.extend(true,Pixel.State,JSON.parse(localStorage.getItem("thePixels")));
+				
+				if(Pixel.State.overlay == null || Pixel.State.overlay == undefined) {
+					location.reload();
+				}
+				
 				Pixel.news.push(" ");
 				Pixel.news.push("Pixels Loaded Successfully");
 				
@@ -884,19 +965,23 @@ Pixel.Init = function() {
 		return retval;
 	}
 	Pixel.ExportSave = function() {
-		return Pixel.EncryptSave(JSON.stringify(Pixel.State));
+		var state = Pixel.State;
+		state.image = null;
+		state.overlay = null;
+		return Pixel.EncryptSave(JSON.stringify(state));
 	}
 	
 	Pixel.SaveGame = function(saveCanvas) {
 		Pixel.UpdateCheck();
-		if(saveCanvas === undefined || saveCanvas == true) {
+		if((saveCanvas === undefined || saveCanvas == true) && !Pixel.partyTime) {
 			//Save the overlay, no need to do this every pixel uncovered
+			//Don't want to do this during party cause the random colors suck
 			var canvas = document.getElementById("overlayCanvas");
 			Pixel.State.overlay = canvas.toDataURL();
 		}
 		//Save the game
 		var thePixels = JSON.stringify(Pixel.State);
-		localStorage.thePixels = thePixels;
+		localStorage.setItem("thePixels", thePixels);
 		Pixel.news.push("Pixels Saved");
 	};
 	
@@ -912,7 +997,75 @@ Pixel.Init = function() {
 	
 	Pixel.PictureComplete = function() {
 		$('#nextImage').css('display', 'block');
-		Pixel.news.push("<a href='http://imgur.com/gallery/" + Pixel.State.image.id + "' target='_blank'>Image</a> finished, new image obtained");
+		Pixel.news.push(Pixel.GetImageLink(Pixel.State.image, "Image") + " finished, new image obtained");
+
+        //Check picture times
+		if(Pixel.State.stats.bestPictureTime <= 2700) {
+			if($.inArray(45, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(45, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 45');
+			}
+		}
+		if(Pixel.State.stats.bestPictureTime <= 1800) {
+			if($.inArray(46, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(46, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 46');
+			}
+		}
+		if(Pixel.State.stats.bestPictureTime <= 1200) {
+			if($.inArray(47, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(47, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 47');
+			}
+		}
+		if(Pixel.State.stats.bestPictureTime <= 600) {
+			if($.inArray(50, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(50, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 50');
+			}
+		}
+
+		//Check pictures completed
+		if(Pixel.State.stats.picturesCompleted >= 1000) {
+			if($.inArray(64, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(64, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		} else if(Pixel.State.stats.picturesCompleted >= 100) {
+			if($.inArray(63, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(63, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		} else if(Pixel.State.stats.picturesCompleted >= 25) {
+			if($.inArray(62, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(62, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		} else if(Pixel.State.stats.picturesCompleted >= 5) {
+			if($.inArray(61, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(61, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		} else if(Pixel.State.stats.picturesCompleted >= 1) {
+			if($.inArray(60, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(60, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+			}
+		}
+
+		//Check some other random picture complete chievos
+		if(Pixel.State.stats.manualPixelsThisImage == 0) {
+			if($.inArray(55, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(55, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 55');
+			}
+		}
+		if(Pixel.State.manualBombsThisImage == 0) {
+			if($.inArray(105, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(105, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 105');
+			}
+		}
 		
 		Pixel.nextImageButtonListener = snack.listener({node: document.getElementById('nextImage'),
 			event: 'click'}, 
@@ -921,7 +1074,7 @@ Pixel.Init = function() {
 				$("#nextImage").css("display", "none");
 				Pixel.State.history.push({
 					skipped: false,
-					link: "http://imgur.com/gallery/"+Pixel.State.image.id,
+					id: Pixel.State.image.id,
 					time: Math.floor(Pixel.State.stats.timePlayedPicture)
 				});
 				Pixel.GetNewImage();
@@ -935,403 +1088,321 @@ Pixel.Init = function() {
 	Pixel.CheckChievos = function() {
 		achieved = Pixel.State.achievements.achieved;
 		//Total Pixels
-		if(Pixel.State.stats.pixelsAllTime >= 1) {
+		if(Pixel.State.stats.pixelsAllTime >= 100000000000000) {
+			if($.inArray(19, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(19, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 19');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 10000000000000) {
+			if($.inArray(18, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(18, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 18');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 1000000000000) {
+			if($.inArray(17, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(17, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 17');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 100000000000) {
+			if($.inArray(16, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(16, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 16');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 10000000000) {
+            if($.inArray(15, achieved) == -1) {
+                Pixel.State.achievements.UnlockAchievement(15, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+                ga('send', 'event', 'achievement', 'unlock', 'Chievo 15');
+            }
+        } else if(Pixel.State.stats.pixelsAllTime >= 1000000000) {
+            if($.inArray(14, achieved) == -1) {
+                Pixel.State.achievements.UnlockAchievement(14, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+                ga('send', 'event', 'achievement', 'unlock', 'Chievo 14');
+            }
+        } else if(Pixel.State.stats.pixelsAllTime >= 100000000) {
+			if($.inArray(13, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(13, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 13');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 10000000) {
+			if($.inArray(12, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(12, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 12');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 5000000) {
+			if($.inArray(11, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(11, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 11');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 1000000) {
+			if($.inArray(10, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(10, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 10');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 500000) {
+			if($.inArray(9, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(9, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 9');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 100000) {
+			if($.inArray(8, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(8, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 8');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 50000) {
+			if($.inArray(7, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(7, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 7');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 25000) {
+			if($.inArray(6, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(6, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 6');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 10000) {
+			if($.inArray(5, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(5, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 5');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 5000) {
+			if($.inArray(4, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(4, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 4');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 2500) {
+			if($.inArray(3, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(3, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 3');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 1000) {
+			if($.inArray(2, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(2, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 2');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 500) {
+			if($.inArray(1, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(1, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 1');
+			}
+		} else if(Pixel.State.stats.pixelsAllTime >= 1) {
 			if($.inArray(0, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(0, "http://imgur.com/gallery/"+Pixel.State.image.id);
+				Pixel.State.achievements.UnlockAchievement(0, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 0');
 			}
 		}
-		if(Pixel.State.stats.pixelsAllTime >= 500) {
-			if($.inArray(1, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(1, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 1');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 1000) {
-			if($.inArray(2, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(2, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 2');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 2500) {
-			if($.inArray(3, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(3, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 3');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 5000) {
-			if($.inArray(4, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(4, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 4');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 10000) {
-			if($.inArray(5, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(5, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 5');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 25000) {
-			if($.inArray(6, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(6, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 6');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 50000) {
-			if($.inArray(7, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(7, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 7');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 100000) {
-			if($.inArray(8, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(8, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 8');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 500000) {
-			if($.inArray(9, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(9, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 9');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 1000000) {
-			if($.inArray(10, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(10, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 10');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 5000000) {
-			if($.inArray(11, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(11, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 11');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 10000000) {
-			if($.inArray(12, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(12, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 12');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 100000000) {
-			if($.inArray(13, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(13, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 13');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 1000000000) {
-			if($.inArray(14, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(14, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 14');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 10000000000) {
-			if($.inArray(15, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(15, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 15');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 100000000000) {
-			if($.inArray(16, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(16, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 16');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 1000000000000) {
-			if($.inArray(17, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(17, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 17');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 10000000000000) {
-			if($.inArray(18, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(18, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 18');
-			}
-		}
-		if(Pixel.State.stats.pixelsAllTime >= 100000000000000) {
-			if($.inArray(19, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(19, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 19');
-			}
-		}
+
 		//Manual Pixels
-		if(Pixel.State.stats.pixelsManuallyCollected >= 1000) {
-			if($.inArray(20, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(20, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 20');
+		if(Pixel.State.stats.pixelsManuallyCollected >= 1000000000000000) {
+			if($.inArray(24, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(24, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 24');
 			}
-		}
-		if(Pixel.State.stats.pixelsManuallyCollected >= 1000000) {
+		} else if(Pixel.State.stats.pixelsManuallyCollected >= 1000000000000) {
+			if($.inArray(23, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(23, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 23');
+			}
+		} else if(Pixel.State.stats.pixelsManuallyCollected >= 1000000000) {
+			if($.inArray(22, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(22, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 22');
+			}
+		} else if(Pixel.State.stats.pixelsManuallyCollected >= 1000000) {
 			if($.inArray(21, achieved) == -1) {
 				Pixel.State.achievements.UnlockAchievement(21), "http://imgur.com/gallery/"+Pixel.State.image.id;
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 21');
 			}
-		}
-		if(Pixel.State.stats.pixelsManuallyCollected >= 1000000000) {
-			if($.inArray(22, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(22, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 22');
-			}
-		}
-		if(Pixel.State.stats.pixelsManuallyCollected >= 1000000000000) {
-			if($.inArray(23, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(23, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 23');
-			}
-		}
-		if(Pixel.State.stats.pixelsManuallyCollected >= 1000000000000000) {
-			if($.inArray(24, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(24, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 24');
-			}
-		}
+		} else if(Pixel.State.stats.pixelsManuallyCollected >= 1000) {
+            if($.inArray(20, achieved) == -1) {
+                Pixel.State.achievements.UnlockAchievement(20, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+                ga('send', 'event', 'achievement', 'unlock', 'Chievo 20');
+            }
+        }
+
 		//Auto Pixels
-		if(Pixel.State.stats.pixelsAutoCollected >= 1000) {
-			if($.inArray(30, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(30, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 30');
-			}
-		}
-		if(Pixel.State.stats.pixelsAutoCollected >= 1000000) {
-			if($.inArray(31, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(31, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 31');
-			}
-		}
-		if(Pixel.State.stats.pixelsAutoCollected >= 1000000000) {
-			if($.inArray(32, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(32, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 32');
-			}
-		}
-		if(Pixel.State.stats.pixelsAutoCollected >= 1000000000000) {
-			if($.inArray(33, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(33, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 33');
-			}
-		}
 		if(Pixel.State.stats.pixelsAutoCollected >= 1000000000000000) {
 			if($.inArray(34, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(34, "http://imgur.com/gallery/"+Pixel.State.image.id);
+				Pixel.State.achievements.UnlockAchievement(34, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 34');
 			}
-		}
+		}else if(Pixel.State.stats.pixelsAutoCollected >= 1000000000000) {
+			if($.inArray(33, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(33, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 33');
+			}
+		} else if(Pixel.State.stats.pixelsAutoCollected >= 1000000000) {
+			if($.inArray(32, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(32, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 32');
+			}
+		} else if(Pixel.State.stats.pixelsAutoCollected >= 1000000) {
+			if($.inArray(31, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(31, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 31');
+			}
+		} else if(Pixel.State.stats.pixelsAutoCollected >= 1000) {
+            if($.inArray(30, achieved) == -1) {
+                Pixel.State.achievements.UnlockAchievement(30, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+                ga('send', 'event', 'achievement', 'unlock', 'Chievo 30');
+            }
+        }
+
 		//Bomb Pixels
-		if(Pixel.State.stats.pixelsBombCollected >= 1000) {
+		if(Pixel.State.stats.pixelsBombCollected >= 1000000000000000) {
+			if($.inArray(44, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(44, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 44');
+			}
+		} else if(Pixel.State.stats.pixelsBombCollected >= 1000000000000) {
+			if($.inArray(43, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(43, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 43');
+			}
+		} else if(Pixel.State.stats.pixelsBombCollected >= 1000000000) {
+			if($.inArray(42, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(42, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 42');
+			}
+		} else if(Pixel.State.stats.pixelsBombCollected >= 1000000) {
+			if($.inArray(41, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(41, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 41');
+			}
+		} else if(Pixel.State.stats.pixelsBombCollected >= 1000) {
 			if($.inArray(40, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(40, "http://imgur.com/gallery/"+Pixel.State.image.id);
+				Pixel.State.achievements.UnlockAchievement(40, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 40');
 			}
 		}
-		if(Pixel.State.stats.pixelsBombCollected >= 1000000) {
-			if($.inArray(41, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(41, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 41');
-			}
-		}
-		if(Pixel.State.stats.pixelsBombCollected >= 1000000000) {
-			if($.inArray(42, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(42, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 42');
-			}
-		}
-		if(Pixel.State.stats.pixelsBombCollected >= 1000000000000) {
-			if($.inArray(43, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(43, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 43');
-			}
-		}
-		if(Pixel.State.stats.pixelsBombCollected >= 1000000000000000) {
-			if($.inArray(44, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(44, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 44');
-			}
-		}
+
 		//Misc
-		if(Pixel.State.stats.bestPictureTime <= 2700) {
-			if($.inArray(45, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(45, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 45');
-			}
-		}
-		if(Pixel.State.stats.bestPictureTime <= 1800) {
-			if($.inArray(46, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(46, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 46');
-			}
-		}
-		if(Pixel.State.stats.bestPictureTime <= 1200) {
-			if($.inArray(47, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(47, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 47');
-			}
-		}
-		if(Pixel.State.stats.bestPictureTime <= 600) {
-			if($.inArray(50, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(50, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 50');
-			}
-		}
 		if(Pixel.State.stats.maxBombChain >= 8) {
 			if($.inArray(51, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(51, "http://imgur.com/gallery/"+Pixel.State.image.id);
+				Pixel.State.achievements.UnlockAchievement(51, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 51');
-			}
-		}
-		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth) {
-			if($.inArray(54, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(54, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 54');
-			}
-		}
-		if(Pixel.State.stats.manualPixelsThisImage == 0 && Pixel.pictureComplete) {
-			if($.inArray(55, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(55, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 55');
 			}
 		}
 		if(Pixel.State.stats.alreadyUncovered >= 10000) {
 			if($.inArray(56, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(56, "http://imgur.com/gallery/"+Pixel.State.image.id);
+				Pixel.State.achievements.UnlockAchievement(56, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
 			}
 		}
-		if(Pixel.State.stats.picturesCompleted >= 1) {
-			if($.inArray(60, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(60, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth) {
+			if($.inArray(54, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(54, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 54');
 			}
 		}
-		if(Pixel.State.stats.picturesCompleted >= 5) {
-			if($.inArray(61, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(61, "http://imgur.com/gallery/"+Pixel.State.image.id);
+
+		//% Pixels this image
+		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.99) {
+			if($.inArray(85, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(85, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
 			}
-		}
-		if(Pixel.State.stats.picturesCompleted >= 25) {
-			if($.inArray(62, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(62, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+		} else if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.75) {
+			if($.inArray(84, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(84, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 84');
 			}
-		}
-		if(Pixel.State.stats.picturesCompleted >= 100) {
-			if($.inArray(63, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(63, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+		} else if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.5) {
+			if($.inArray(83, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(83, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 83');
 			}
-		}
-		if(Pixel.State.stats.picturesCompleted >= 1000) {
-			if($.inArray(64, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(64, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+		} else if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.25) {
+			if($.inArray(82, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(82, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 82');
 			}
-		}
-		if(Pixel.State.stats.picturesSkipped >= 1) {
-			if($.inArray(70, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(70, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
+		} else if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.1) {
+			if($.inArray(81, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(81, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 81');
 			}
-		}
-		if(Pixel.State.stats.picturesSkipped >= 5) {
-			if($.inArray(71, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(71, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
-			}
-		}
-		if(Pixel.State.stats.picturesSkipped >= 25) {
-			if($.inArray(72, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(72, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
-			}
-		}
-		if(Pixel.State.stats.picturesSkipped >= 50) {
-			if($.inArray(73, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(73, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
-			}
-		}
-		if(Pixel.State.stats.picturesSkipped >= 100) {
-			if($.inArray(74, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(74, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
-			}
-		}
-		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.01) {
+		} else if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.01) {
 			if($.inArray(80, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(80, "http://imgur.com/gallery/"+Pixel.State.image.id);
+				Pixel.State.achievements.UnlockAchievement(80, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 80');
 			}
 		}
-		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.1) {
-			if($.inArray(81, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(81, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 81');
-			}
-		}
-		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.25) {
-			if($.inArray(82, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(82, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 82');
-			}
-		}
-		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.5) {
-			if($.inArray(83, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(83, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 83');
-			}
-		}
-		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.75) {
-			if($.inArray(84, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(84, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 84');
-			}
-		}
-		if(Pixel.State.pixelsThisImage >= Pixel.imageHeight*Pixel.imageWidth*0.99) {
-			if($.inArray(85, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(85, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 85');
-			}
-		}
-		if(Pixel.State.stats.partiesHad >= 1) {
-			if($.inArray(90, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(90, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 90');
-			}
-		}
-		if(Pixel.State.stats.partiesHad >= 10) {
-			if($.inArray(91, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(91, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 91');
-			}
-		}
-		if(Pixel.State.stats.partiesHad >= 50) {
-			if($.inArray(92, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(92, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 92');
-			}
-		}
-		if(Pixel.State.stats.partiesHad >= 100) {
-			if($.inArray(93, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(93, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 93');
+
+        //Parties
+		if(Pixel.State.stats.partiesMissed >= 1000) {
+			if($.inArray(95, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(95, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 95');
 			}
 		}
 		if(Pixel.State.stats.partiesHad >= 1000) {
 			if($.inArray(94, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(94, "http://imgur.com/gallery/"+Pixel.State.image.id);
+				Pixel.State.achievements.UnlockAchievement(94, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 94');
 			}
+		} else if(Pixel.State.stats.partiesHad >= 100) {
+			if($.inArray(93, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(93, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 93');
+			}
+		} else if(Pixel.State.stats.partiesHad >= 50) {
+			if($.inArray(92, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(92, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 92');
+			}
+		} else if(Pixel.State.stats.partiesHad >= 10) {
+			if($.inArray(91, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(91, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 91');
+			}
+		} else if(Pixel.State.stats.partiesHad >= 1) {
+			if($.inArray(90, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(90, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 90');
+			}
 		}
-		if(Pixel.State.stats.partiesMissed >= 1000) {
-			if($.inArray(95, achieved) == -1) {
-				Pixel.State.achievements.UnlockAchievement(95, "http://imgur.com/gallery/"+Pixel.State.image.id);
-				ga('send', 'event', 'achievement', 'unlock', 'Chievo 95');
+
+		//Bombs
+		if(Pixel.State.stats.bombsLaunched >= 1000) {
+			if($.inArray(104, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(104, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 104');
+			}
+		} else if(Pixel.State.stats.bombsLaunched >= 500) {
+			if($.inArray(103, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(103, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 103');
+			}
+		} else if(Pixel.State.stats.bombsLaunched >= 250) {
+			if($.inArray(102, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(102, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 102');
+			}
+		} else if(Pixel.State.stats.bombsLaunched >= 50) {
+			if($.inArray(101, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(101, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 101');
+			}
+		} else if(Pixel.State.stats.bombsLaunched >= 1) {
+			if($.inArray(100, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(100, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 100');
 			}
 		}
 	};
 
 	Pixel.LaunchPartyPixel = function() {
+		//Create the random party pixel overlay - we should only ever do this once as it sucks
+		if(Pixel.partyOverlay == null) {
+			Pixel.partyOverlay = Array();
+			for(var ndx = 0; ndx < Pixel.maxHeight*Pixel.maxWidth*4; ndx++) {
+				if(ndx%4 != 3) {
+					Pixel.partyOverlay[ndx++] = Math.floor(Math.random()*256);
+					Pixel.partyOverlay[ndx++] = Math.floor(Math.random()*256);
+					Pixel.partyOverlay[ndx] = Math.floor(Math.random()*256);
+				}
+			}
+		}
+		
 	    Pixel.partyPixelEventListener.attach();
 	    $('#partyPixel').css('display', 'block');
 	    //start the pixel somewhere from the top
@@ -1339,21 +1410,25 @@ Pixel.Init = function() {
 		$('#partyPixel').css('left', '-50px');
 		$('#partyPixel').animate(
 		    {left: "110%"},
-            7500,
+            15000,
             function(){Pixel.State.stats.partiesMissed++;}
 		);
 	}
 
 	Pixel.PartyPixelClick = function() {
 	    Pixel.partyPixelEventListener.detach();
+	    ga('send', 'event', 'stats', 'partypixelclick');
 	    $('#partyPixel').stop();
 	    $('#partyPixel').css('display', 'none');
 		$('#partyPixel').css('top', '-100px');
 		$('#partyPixel').css('left', '-100px');
+		$('#body').css('background-color', 'magenta');
+		var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2)*2;
+		$('#pps').html(pps);
 		Pixel.State.stats.partiesHad++;
         Pixel.partyTime = true;
-        Pixel.nextPartyTime = false;
         $("#colorSlider").attr('disabled',true);
+        Pixel.ChangePixelColor("party");
 	}
 	
 	//---------------------------
@@ -1394,16 +1469,15 @@ Pixel.Init = function() {
 			Pixel.SaveGame();
 			Pixel.timeToSave = 0;
 			Pixel.UpdateCheck(); //Check for an update when we save
-			ga('send', 'event', 'global', 'savegame');
+			ga('send', 'event', 'global', 'savegame', Pixel.version);
 			ga('send', 'event', 'stats', 'currPixels', Pixel.State.numPixels);
 			ga('send', 'event', 'stats', 'allPixels', Pixel.State.stats.pixelsAllTime);
 		}
 
 		//PaRtY PiXeL!
 		Pixel.timeToParty+=1/Pixel.fps;
-		if(Pixel.timeToParty >= Pixel.baseTimeToParty && Pixel.nextPartyTime) {
+		if(Pixel.timeToParty >= Pixel.baseTimeToParty) {
 			Pixel.timeToParty = 0;
-			Pixel.nextPartyTime = false;
 			Pixel.LaunchPartyPixel();
 			ga('send', 'event', 'stats', 'partypixel');
 		}
@@ -1412,14 +1486,17 @@ Pixel.Init = function() {
 		    if(Pixel.partyTimeLeft >= Pixel.basePartyTime) {
 		        //Party time over
 		        Pixel.partyTime = false;
-		        Pixel.nextPartyTime = true;
 		        Pixel.partyTimeLeft = 0;
+                Pixel.ChangePixelColor(Pixel.State.color);
                 $("#colorSlider").attr('disabled',false);
+				var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2);
+				$('#pps').html(pps);
+				$('#body').css('background-color', 'white');
 		    }
 		    Pixel.timeToPartyRefresh+=1/Pixel.fps;
 		    if(Pixel.timeToPartyRefresh >= Pixel.basePartyRefresh) {
                 Pixel.timeToPartyRefresh = 0;
-                Pixel.ChangePixelColor("random");
+				$('#body').css('background-color', Pixel.colors[Math.floor(Math.random()*Pixel.colors.length)]);
 		    }
 		}
 		

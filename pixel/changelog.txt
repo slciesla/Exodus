@@ -1,0 +1,14 @@
+Pixel This Change Log
+
+9/12/13 - v1.0.3
+Fixed a bug with missing a party pixel
+Rearranged the achievements so hopefully it's less consuming
+
+9/11/14 - v1.0.2
+Fixed a bug with tracking bombs
+
+9/11/14 - v1.0.1
+Fixed a missing feature to the PaRtY PiXeL
+
+9/11/14 - v1.0.0
+Initial Live Release

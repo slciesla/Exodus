@@ -253,9 +253,9 @@
 #partyPixel {
     height: 50px;
     width: 50px;
-    background-color: magenta;
+    background-color: #F020F0;
     z-index: 5;
     position: fixed;
-    top: 100px;
-    left: 100px;
+    top: -100px;
+    left: -100px;
 }
