@@ -533,7 +533,7 @@ Achievements.prototype = {
 	},
 	UnlockAchievement:function(ndx, link) {
 		this.achieved.push(ndx);
-		this.achievedOn[achieved.length-1] = link;
+		this.achievedOn[this.achieved.length-1] = link;
 		this.ToastAchievement(ndx);
 	}
 }

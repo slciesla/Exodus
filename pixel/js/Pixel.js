@@ -25,7 +25,7 @@ Pixel.Init = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Pixel.version = 'v1.1.2';
+			Pixel.version = 'v1.1.3';
 			Pixel.initialized = 1;
 			Pixel.fps = 120;
 			Pixel.saveEvery = 300; //Save every 5 min
@@ -344,6 +344,7 @@ Pixel.Init = function() {
 				function (){
 					$("#info").html("");
 					var txt = "<div id='infoHeader' class='infoHeader'>MENU:</div><br />";
+					txt += "Game Version: "+Pixel.version+"<br /><br />";
 					txt += "<div id='saveGameButton' class='headerButton'>Save Game</div>";
 					txt += "<div style='height: 5px; clear: both;'></div>";
 					txt += "<div style='font-size: 0.7em'>Note: Game is saved automatically every 5 min</div><br />";
@@ -812,6 +813,7 @@ Pixel.Init = function() {
 		});
 
 		//Check chievos
+		var achieved = Pixel.State.achievements.achieved;
 		if(Pixel.State.stats.picturesSkipped >= 100) {
 			if($.inArray(74, achieved) == -1) {
 				Pixel.State.achievements.UnlockAchievement(74, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
@@ -1057,6 +1059,7 @@ Pixel.Init = function() {
 		Pixel.news.push(Pixel.GetImageLink(Pixel.State.image, "Image") + " finished, new image obtained");
 
         //Check picture times
+		var achieved = Pixel.State.achievements.achieved;
 		if(Pixel.State.stats.bestPictureTime <= 2700) {
 			if($.inArray(45, achieved) == -1) {
 				Pixel.State.achievements.UnlockAchievement(45, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
@@ -1144,7 +1147,7 @@ Pixel.Init = function() {
 	//Check Achievements
 	//---------------------------
 	Pixel.CheckChievos = function() {
-		achieved = Pixel.State.achievements.achieved;
+		var achieved = Pixel.State.achievements.achieved;
 		//Total Pixels
 		if(Pixel.State.stats.pixelsAllTime >= 100000000000000) {
 			if($.inArray(19, achieved) == -1) {
