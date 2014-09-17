@@ -1,5 +1,19 @@
 Pixel This Change Log
 
+9/15/14 - v1.1.2
+Fixed history bugs
+
+9/15/14 - v1.1.1
+Added option for number formatting
+Fixed/moved lag in Opera
+
+9/15/14 - v1.1.0
+Initial Live Release
+Greatly improved starting speed
+Moved some necessary upgrades out from under info/stat upgrades
+Reduced the price on some upgrades
+Added Pixel Splitters
+
 9/13/14 - v1.0.4
 Hopefully fixed bug with loading saved image
 
@@ -14,4 +28,4 @@ Fixed a bug with tracking bombs
 Fixed a missing feature to the PaRtY PiXeL
 
 9/11/14 - v1.0.0
-Initial Live Release
+Internal Release

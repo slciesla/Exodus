@@ -4,6 +4,17 @@
 Pixel = {};
 Pixel.State = {};
 
+function hrformat(number) {
+	if(Pixel.State.shortFormats) {
+		number = number < 1 && number > 0 ? 1 : number;
+		var s = ['', 'k', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+		var e = Math.floor(Math.log(number) / Math.log(1000));
+		return number < 1000 ? Math.floor(number) : ((number / Math.pow(1000, e)).toFixed(2) + s[e]);
+	} else {
+		return number;
+	}
+}
+
 Pixel.Init = function() {
 	Pixel.initialized = 0;
 	Pixel.Start = function() {
@@ -14,13 +25,14 @@ Pixel.Init = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Pixel.version = 'v1.0.4';
+			Pixel.version = 'v1.1.2';
 			Pixel.initialized = 1;
 			Pixel.fps = 120;
 			Pixel.saveEvery = 300; //Save every 5 min
 			Pixel.maxWidth = 600;
 			Pixel.maxHeight = 800;
-			Pixel.baseAutoCursorSpeed = 2;
+			Pixel.baseAutoCursorSpeed = 1;
+			Pixel.baseAutoCursorUpgradeSpeed = 1;
 			Pixel.baseBombReloadSpeed = 36;
 			Pixel.autoFinishTime = 300; //Let auto finish trigger after 5 min
 			Pixel.tabRefreshTime = 1;
@@ -79,6 +91,7 @@ Pixel.Init = function() {
 			Pixel.State.cursorBombMaxChainLvl = 1;
 			Pixel.State.color = 0;
 			Pixel.State.bombReady = false;
+			Pixel.State.shortFormats = true;
 			Pixel.State.history = Array();
 			Pixel.State.achievements = new Achievements();
 			Pixel.State.upgrades = new Upgrades();
@@ -110,13 +123,25 @@ Pixel.Init = function() {
 			Pixel.news.push("Any PPS increase over 120pps will not take effect due to the nature of the trigger. To be fixed soon™");
 			Pixel.news.push("View the changelog <a href='changelog.txt' target='_blank'>here</a>");
 			
+			//Create the random party pixel overlay - we should only ever do this once as it sucks
+			if(Pixel.partyOverlay == null) {
+				Pixel.partyOverlay = Array();
+				for(var ndx = 0; ndx < Pixel.maxHeight*Pixel.maxWidth*4; ndx++) {
+					if(ndx%4 != 3) {
+						Pixel.partyOverlay[ndx++] = Math.floor(Math.random()*256);
+						Pixel.partyOverlay[ndx++] = Math.floor(Math.random()*256);
+						Pixel.partyOverlay[ndx] = Math.floor(Math.random()*256);
+					}
+				}
+			}
+			
 			//Load the existing state if one exists
 			Pixel.LoadGame();
 			
 			//Setup
 			var index = 0;
-			$('#pixels').html(Pixel.State.numPixels);
-			var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2);
+			$('#pixels').html(hrformat(Pixel.State.numPixels));
+			var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2);
 			$('#pps').html(pps);
 			if(Pixel.State.autoCursorSpeedLvl == 0) {
 				$('#pps').html("0");
@@ -167,14 +192,14 @@ Pixel.Init = function() {
 										cost = _upgd.costFunc(cost);
 										popupTxt += "Current Level: " + _upgd.tracker() + "<br />";
 									}
-									popupTxt += "Cost: "+cost+" Pixels<br />";
+									popupTxt += "Cost: "+hrformat(cost)+" Pixels<br />";
 									
 									Pixel.gameButtonListeners[_upgd.id] = snack.listener({node: document.getElementById('upgradeButton'+_upgd.id),
 										event: 'click'}, 
 										function (event){
 											if(cost <= Pixel.State.numPixels) {
 												Pixel.State.numPixels -= cost;
-												$('#pixels').html(Pixel.State.numPixels);
+												$('#pixels').html(hrformat(Pixel.State.numPixels));
 												_upgd.unlockFunction();
 												Pixel.UpgradesButtonListener.fire();
 											} else {
@@ -258,10 +283,6 @@ Pixel.Init = function() {
 					$("#info").html("");
 					var txt = "<div id='infoHeader' class='infoHeader'>Image History:</div><br />";
 					for(var i = Pixel.State.history.length; i != 0; i--) {
-					    if(Pixel.State.history[i-1].id === undefined) {
-					        var splt = Pixel.State.history[i-1].link.split('/');
-					        Pixel.State.history[i-1].id = splt[splt.length-1];
-					    }
 						if(Pixel.State.history[i-1].skipped) {
 							txt += "Image "+i+": " + Pixel.GetImageLink(Pixel.State.history[i-1], Pixel.State.history[i-1].id) +
 							        " skipped after "+Pixel.State.history[i-1].time+" seconds";
@@ -326,6 +347,11 @@ Pixel.Init = function() {
 					txt += "<div id='saveGameButton' class='headerButton'>Save Game</div>";
 					txt += "<div style='height: 5px; clear: both;'></div>";
 					txt += "<div style='font-size: 0.7em'>Note: Game is saved automatically every 5 min</div><br />";
+					txt += "<div>Number Formatting: <input type='checkbox' id='numberFormattingCheckbox' ";
+					if(Pixel.State.shortFormats) {
+						txt += "checked";
+					}
+					txt += " /><br /><br />";
 					txt += "Save Game State (copy this and save it somewhere safe):<br />";
 					txt += "<textarea style='height:125px; width:330px;'>"+Pixel.ExportSave()+"</textarea>";
 					txt += "<br /><br />";
@@ -343,6 +369,12 @@ Pixel.Init = function() {
 						event: 'click'}, 
 						function (){
 							Pixel.SaveGame();
+						}
+					);
+					Pixel.FormatCheckboxListener = snack.listener({node: document.getElementById('numberFormattingCheckbox'),
+						event: 'click'}, 
+						function (){
+							Pixel.State.shortFormats = $('#numberFormattingCheckbox').prop('checked');
 						}
 					);
 				}
@@ -391,12 +423,12 @@ Pixel.Init = function() {
 	
 	//Upgrade Unlock Functions
 	Pixel.DisplayPixels = function() {
-		$('#currency').css('display','block');
+		$('#currency').css('display','inline-table');
 		Pixel.State.upgrades.owned.push(0);
 	};
 	Pixel.AutoCursor = function() {
 		Pixel.State.autoCursorSpeedLvl = 1;
-		var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2);
+		var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2);
 		if(Pixel.partyTime) {
 			pps *= 2;
 		}
@@ -405,7 +437,7 @@ Pixel.Init = function() {
 	};
 	Pixel.AutoCursorSpeedUpgrade = function() {
 		Pixel.State.autoCursorSpeedLvl++;
-		var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2);
+		var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2);
 		if(Pixel.partyTime) {
 			pps *= 2;
 		}
@@ -493,13 +525,31 @@ Pixel.Init = function() {
 		$('#colorSliderContainer').css("display","block");
 		Pixel.State.upgrades.owned.push(20);
 	};
+	Pixel.PixelSplitManual1Unlock = function() {
+		Pixel.State.upgrades.owned.push(21);
+	};
+	Pixel.PixelSplitManual2Unlock = function() {
+		Pixel.State.upgrades.owned.push(22);
+	};
+	Pixel.PixelSplitAuto1Unlock = function() {
+		Pixel.State.upgrades.owned.push(23);
+	};
+	Pixel.PixelSplitAuto2Unlock = function() {
+		Pixel.State.upgrades.owned.push(24);
+	};
+	Pixel.PixelSplitBomb1Unlock = function() {
+		Pixel.State.upgrades.owned.push(25);
+	};
+	Pixel.PixelSplitBomb2Unlock = function() {
+		Pixel.State.upgrades.owned.push(26);
+	};
 	
 	//Upgrade Cost Functions
 	Pixel.AutoCursorSpeedCost = function(initial) {
-		return initial + initial * 0.1 * Pixel.State.autoCursorSpeedLvl * 10;
+		return Math.floor(initial + initial * Math.pow(1.15,Pixel.State.autoCursorSpeedLvl));
 	};
 	Pixel.CursorSizeCost = function(initial) {
-		return Math.floor(initial + initial * 0.5 * Math.pow(1.5,Pixel.State.cursorSizeLvl));
+		return Math.floor(initial * 0.5 * Math.pow(1.25,Pixel.State.cursorSizeLvl));
 	};
 	Pixel.CursorBombSpeedCost = function(initial) {
 		return Math.floor(initial + initial * 0.25 *  Math.pow(Pixel.State.cursorBombSpeedLvl,2));
@@ -508,7 +558,7 @@ Pixel.Init = function() {
 		return Math.floor(initial + initial * 0.5 *  Math.pow(Pixel.State.cursorBombChainLvl,1.5));
 	};
 	Pixel.CursorBombMaxChainCost = function(initial) {
-		return Math.floor(initial + initial * 2 *  Math.pow(Pixel.State.cursorBombMaxChainLvl,2));
+		return Math.floor(initial + initial * 1.25 *  Math.pow(Pixel.State.cursorBombMaxChainLvl,2));
 	};
 	
 	//Other Functions
@@ -542,14 +592,27 @@ Pixel.Init = function() {
 		}
 		var transparency = Pixel.overlayImageData.data[ndx];
 		if(transparency != 0 && ndx > 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
-			Pixel.State.numPixels++;
 			Pixel.State.pixelsThisImage++;
 			Pixel.State.stats.pixelsAllTime++;
 			if(type == "Manual") {
 				Pixel.State.stats.pixelsManuallyCollected++;
 				Pixel.State.stats.manualPixelsThisImage++;
+				if(Pixel.State.upgrades.Check(22)) {
+					Pixel.State.numPixels+=4;
+				} else if(Pixel.State.upgrades.Check(21)) {
+					Pixel.State.numPixels+=2;
+				} else {
+					Pixel.State.numPixels+=1;
+				}
 			} else if(type == "Bomb") {
 				Pixel.State.stats.pixelsBombCollected++;
+				if(Pixel.State.upgrades.Check(26)) {
+					Pixel.State.numPixels+=4;
+				} else if(Pixel.State.upgrades.Check(25)) {
+					Pixel.State.numPixels+=2;
+				} else {
+					Pixel.State.numPixels+=1;
+				}
 			}
 			Pixel.overlayImageData.data[ndx] = 0;
 		} else if(type == "Manual" && transparency == 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
@@ -604,7 +667,7 @@ Pixel.Init = function() {
 		}
 		
 		Pixel.WriteOverlayData();
-		$('#pixels').html(Pixel.State.numPixels);
+		$('#pixels').html(hrformat(Pixel.State.numPixels));
 	};
 	
 	Pixel.TurnOnBombListener = function() {
@@ -700,7 +763,7 @@ Pixel.Init = function() {
 		
 		//Write back to the image
 		Pixel.WriteOverlayData();
-		$('#pixels').html(Pixel.State.numPixels);
+		$('#pixels').html(hrformat(Pixel.State.numPixels));
 		
 		//Check for a chain
 		if(turn == 0 && Pixel.State.cursorBombChainLvl > 0) {
@@ -744,7 +807,7 @@ Pixel.Init = function() {
 		Pixel.State.stats.picturesSkipped++;
 		Pixel.State.history.push({
 			skipped: true,
-			link: Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id),
+			id: Pixel.State.image.id,
 			time: Math.floor(Pixel.State.stats.timePlayedPicture)
 		});
 
@@ -905,7 +968,7 @@ Pixel.Init = function() {
 				//Check stuff
 				//If we have the pixel display, turn it on
 				if(Pixel.State.upgrades.Check(0)) {
-					$('#currency').css('display','block');
+					$('#currency').css('display','inline-table');
 				}
 				if(Pixel.State.upgrades.Check(10)) {
 					Pixel.TurnOnBombListener();
@@ -1064,6 +1127,7 @@ Pixel.Init = function() {
 		Pixel.nextImageButtonListener = snack.listener({node: document.getElementById('nextImage'),
 			event: 'click'}, 
 			function (){
+				Pixel.nextImageButtonListener.detach();
 				ga('send', 'event', 'global', 'finishedimage');
 				$("#nextImage").css("display", "none");
 				Pixel.State.history.push({
@@ -1385,17 +1449,6 @@ Pixel.Init = function() {
 	};
 
 	Pixel.LaunchPartyPixel = function() {
-		//Create the random party pixel overlay - we should only ever do this once as it sucks
-		if(Pixel.partyOverlay == null) {
-			Pixel.partyOverlay = Array();
-			for(var ndx = 0; ndx < Pixel.maxHeight*Pixel.maxWidth*4; ndx++) {
-				if(ndx%4 != 3) {
-					Pixel.partyOverlay[ndx++] = Math.floor(Math.random()*256);
-					Pixel.partyOverlay[ndx++] = Math.floor(Math.random()*256);
-					Pixel.partyOverlay[ndx] = Math.floor(Math.random()*256);
-				}
-			}
-		}
 		
 	    Pixel.partyPixelEventListener.attach();
 	    $('#partyPixel').css('display', 'block');
@@ -1417,7 +1470,7 @@ Pixel.Init = function() {
 		$('#partyPixel').css('top', '-100px');
 		$('#partyPixel').css('left', '-100px');
 		$('#body').css('background-color', 'magenta');
-		var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2)*2;
+		var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2)*2;
 		$('#pps').html(pps);
 		Pixel.State.stats.partiesHad++;
         Pixel.partyTime = true;
@@ -1483,7 +1536,7 @@ Pixel.Init = function() {
 		        Pixel.partyTimeLeft = 0;
                 Pixel.ChangePixelColor(Pixel.State.color);
                 $("#colorSlider").attr('disabled',false);
-				var pps = ((1+0.5*(Pixel.State.autoCursorSpeedLvl-1))/Pixel.baseAutoCursorSpeed).toFixed(2);
+				var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2);
 				$('#pps').html(pps);
 				$('#body').css('background-color', 'white');
 		    }
@@ -1525,7 +1578,7 @@ Pixel.Init = function() {
 			if(Pixel.partyTime) {
 			    Pixel.timeToCursor+=1/Pixel.fps;
 			}
-			if(Pixel.timeToCursor >= Pixel.baseAutoCursorSpeed/(1+0.5*(Pixel.State.autoCursorSpeedLvl-1))) {
+			if(Pixel.timeToCursor >= Pixel.baseAutoCursorSpeed/(Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)) {
 				Pixel.timeToCursor = 0;
 				
 				var trans = 0;
@@ -1567,7 +1620,13 @@ Pixel.Init = function() {
 				Pixel.State.lastRandX = pxpX;
 				Pixel.State.lastRandY = pxpY;
 				
-				Pixel.State.numPixels++;
+				if(Pixel.State.upgrades.Check(24)) {
+					Pixel.State.numPixels+=4;
+				} else if(Pixel.State.upgrades.Check(23)) {
+					Pixel.State.numPixels+=2;
+				} else {
+					Pixel.State.numPixels+=1;
+				}
 				Pixel.State.pixelsThisImage++;
 				Pixel.State.stats.pixelsAllTime++;
 				Pixel.State.stats.pixelsAutoCollected++;
@@ -1575,7 +1634,7 @@ Pixel.Init = function() {
 				Pixel.overlayImageData.data[ndx] = 0;
 				
 				Pixel.WriteOverlayData();
-				$('#pixels').html(Pixel.State.numPixels);
+				$('#pixels').html(hrformat(Pixel.State.numPixels));
 			}
 		}
 		

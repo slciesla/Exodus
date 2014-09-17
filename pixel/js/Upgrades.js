@@ -53,7 +53,7 @@ function Upgrades() {
 		id: 6,
 		name: "Advanced Image Info",
 		desc: "Shows more image information",
-		cost: 25000,
+		cost: 8000,
 		persist: false,
 		prereq: 5,
 		unlockFunction: Pixel.AdvancedInfoUnlock
@@ -71,7 +71,7 @@ function Upgrades() {
 		id: 8,
 		name: "Advanced Stats",
 		desc: "Shows more statistics",
-		cost: 25000,
+		cost: 12000,
 		persist: false,
 		prereq: 7,
 		unlockFunction: Pixel.AdvancedStatsUnlock
@@ -80,17 +80,17 @@ function Upgrades() {
 		id: 9,
 		name: "Get New Image",
 		desc: "Gets a new image if you don't like the one you have<br />Only works about once every 30 seconds",
-		cost: 25000,
+		cost: 10000,
 		persist: true,
 		tracker: false,
-		prereq: 6,
+		prereq: 1,
 		unlockFunction: Pixel.SkipImage
 	};
 	this.upgrades[10] = {
 		id: 10,
 		name: "Cursor Bomb",
 		desc: "Drops a pixel collecting bomb when you click",
-		cost: 15000,
+		cost: 8000,
 		persist: false,
 		prereq: 1,
 		unlockFunction: Pixel.CursorBombUnlock
@@ -119,7 +119,7 @@ function Upgrades() {
 		id: 13,
 		name: "Bomb Size II",
 		desc: "Makes the cursor bomb bigger",
-		cost: 200000,
+		cost: 60000,
 		persist: false,
 		prereq: 11,
 		unlockFunction: Pixel.CursorBombSizeUpgradeII
@@ -128,7 +128,7 @@ function Upgrades() {
 		id: 14,
 		name: "Bomb Size III",
 		desc: "Makes the cursor bomb bigger",
-		cost: 600000,
+		cost: 150000,
 		persist: false,
 		prereq: 13,
 		unlockFunction: Pixel.CursorBombSizeUpgradeIII
@@ -137,7 +137,7 @@ function Upgrades() {
 		id: 15,
 		name: "Bomb Size IV",
 		desc: "Makes the cursor bomb bigger",
-		cost: 1500000,
+		cost: 600000,
 		persist: false,
 		prereq: 14,
 		unlockFunction: Pixel.CursorBombSizeUpgradeIV
@@ -146,16 +146,16 @@ function Upgrades() {
 		id: 16,
 		name: "Bomb Size V",
 		desc: "Makes the cursor bomb bigger",
-		cost: 5000000,
+		cost: 2500000,
 		persist: false,
 		prereq: 15,
 		unlockFunction: Pixel.CursorBombSizeUpgradeV
 	};
 	this.upgrades[17] = {
 		id: 17,
-		name: "Bomb Chain Chance",
+		name: "Bomb Chain %",
 		desc: "Increases chance of bombs triggering another bomb",
-		cost: 25000,
+		cost: 10000,
 		costFunc: Pixel.CursorBombChainCost,
 		tracker: function() { return Pixel.State.cursorBombChainLvl; },
 		persist: true,
@@ -168,14 +168,14 @@ function Upgrades() {
 		desc: "Unlocks a toggle to have the game automatically start the next image once complete",
 		cost: 75000,
 		persist: false,
-		prereq: 6,
+		prereq: 1,
 		unlockFunction: Pixel.AutoFinishImage
 	};
 	this.upgrades[19] = {
 		id: 19,
 		name: "Bomb Max Chain",
 		desc: "Increases number of bombs that can be triggered in a chain. There are diminishing returns on successive bombings.",
-		cost: 20000,
+		cost: 4000,
 		costFunc: Pixel.CursorBombMaxChainCost,
 		tracker: function() { return Pixel.State.cursorBombMaxChainLvl; },
 		persist: true,
@@ -186,12 +186,66 @@ function Upgrades() {
 		id: 20,
 		name: "Pixel Color",
 		desc: "Unlocks a slider that allows you to change the pixel color",
-		cost: 100000,
+		cost: 50000,
 		persist: false,
-		prereq: 6,
+		prereq: 1,
 		unlockFunction: Pixel.PixelColorUnlock
 	};
-	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18,20);
+	this.upgrades[21] = {
+		id: 21,
+		name: "Pix Splitter",
+		desc: "Splits pixels gathered manually, having them count for double currency",
+		cost: 50000,
+		persist: false,
+		prereq: 1,
+		unlockFunction: Pixel.PixelSplitManual1Unlock
+	};
+	this.upgrades[22] = {
+		id: 22,
+		name: "Pix Dicer",
+		desc: "Further splits pixels gathered manually, they now count for quadruple currency",
+		cost: 150000,
+		persist: false,
+		prereq: 21,
+		unlockFunction: Pixel.PixelSplitManual2Unlock
+	};
+	this.upgrades[23] = {
+		id: 23,
+		name: "Auto Pix Splitter",
+		desc: "Splits pixels gathered with the auto cursor, having them count for double currency",
+		cost: 50000,
+		persist: false,
+		prereq: 1,
+		unlockFunction: Pixel.PixelSplitAuto1Unlock
+	};
+	this.upgrades[24] = {
+		id: 24,
+		name: "Auto Pix Dicer",
+		desc: "Further splits pixels gathered with the auto cursor, they now count for quadruple currency",
+		cost: 150000,
+		persist: false,
+		prereq: 23,
+		unlockFunction: Pixel.PixelSplitAuto2Unlock
+	};
+	this.upgrades[25] = {
+		id: 25,
+		name: "Bomb Pix Splitter",
+		desc: "Splits pixels gathered with the bomb, having them count for double currency",
+		cost: 50000,
+		persist: false,
+		prereq: 10,
+		unlockFunction: Pixel.PixelSplitBomb1Unlock
+	};
+	this.upgrades[26] = {
+		id: 26,
+		name: "Bomb Pix Dicer",
+		desc: "Further splits pixels gathered with the bomb, they now count for quadruple currency",
+		cost: 150000,
+		persist: false,
+		prereq: 25,
+		unlockFunction: Pixel.PixelSplitBomb2Unlock
+	};
+	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18,20,21,22,23,24,25,26);
 	this.owned = Array();
 }
 
