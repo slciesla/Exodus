@@ -315,6 +315,13 @@ function Achievements() {
 		desc: "Uncovered 10000 pixels that have already been uncovered",
 		image: "gotthose.png"
 	};
+	this.chievos[57] = {
+		name: "True Speedster",
+		hidden: true,
+		beforeDesc: "Finish a picture in under 60 seconds",
+		desc: "Finished a picture in under 60 seconds",
+		image: "speedy5.png"
+	};
 	this.chievos[60] = {
 		name: "Picturesque I",
 		hidden: false,
@@ -512,7 +519,7 @@ function Achievements() {
 		image: "pacifist1.png"
 	};
 	this.chievoList = Array(80,81,82,83,84,85,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,30,31,32,33,34,40,41,
-		42,43,44,45,46,47,60,61,62,63,64,70,71,72,73,74,50,51,52,53,54,55,56,90,91,92,93,94,95,100,101,102,103,104,105);
+		42,43,44,45,46,47,60,61,62,63,64,70,71,72,73,74,50,57,51,52,53,54,55,56,90,91,92,93,94,95,100,101,102,103,104,105);
 	this.achieved = Array();
 	this.achievedOn = Array();
 }

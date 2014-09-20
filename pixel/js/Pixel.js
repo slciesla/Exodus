@@ -25,7 +25,7 @@ Pixel.Init = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Pixel.version = 'v1.1.3';
+			Pixel.version = 'v1.1.4';
 			Pixel.initialized = 1;
 			Pixel.fps = 120;
 			Pixel.saveEvery = 300; //Save every 5 min
@@ -34,7 +34,7 @@ Pixel.Init = function() {
 			Pixel.baseAutoCursorSpeed = 1;
 			Pixel.baseAutoCursorUpgradeSpeed = 1;
 			Pixel.baseBombReloadSpeed = 36;
-			Pixel.autoFinishTime = 300; //Let auto finish trigger after 5 min
+			Pixel.autoFinishTime = 30; //Let auto finish trigger after 30s
 			Pixel.tabRefreshTime = 1;
 			Pixel.baseTimeToParty = 600; //Party Pixel every 10 min
 			Pixel.basePartyTime = 15; //Parties last 15s
@@ -92,6 +92,8 @@ Pixel.Init = function() {
 			Pixel.State.color = 0;
 			Pixel.State.bombReady = false;
 			Pixel.State.shortFormats = true;
+			Pixel.State.nightMode = false;
+			Pixel.State.flashingParty = true;
 			Pixel.State.history = Array();
 			Pixel.State.achievements = new Achievements();
 			Pixel.State.upgrades = new Upgrades();
@@ -122,6 +124,7 @@ Pixel.Init = function() {
 			Pixel.news.push(" ");
 			Pixel.news.push("Any PPS increase over 120pps will not take effect due to the nature of the trigger. To be fixed soon™");
 			Pixel.news.push("View the changelog <a href='changelog.txt' target='_blank'>here</a>");
+			Pixel.news.push("***If bright, rapidly flashing colors can or do bother you, please turn off 'Flashing Party' under the menu tab!***");
 			
 			//Create the random party pixel overlay - we should only ever do this once as it sucks
 			if(Pixel.partyOverlay == null) {
@@ -342,14 +345,43 @@ Pixel.Init = function() {
 			Pixel.menuButtonListener = snack.listener({node: document.getElementById('menuHeaderBtn'),
 				event: 'click'}, 
 				function (){
+					if(Pixel.ImportSaveButtonListener !== undefined) {
+						Pixel.ImportSaveButtonListener.detach();
+					}
+					if(Pixel.SaveGameButtonListener !== undefined) {
+						Pixel.SaveGameButtonListener.detach();
+					}
+					if(Pixel.HardResetButtonListener !== undefined) {
+						Pixel.HardResetButtonListener.detach();
+					}
+					if(Pixel.FormatCheckboxListener !== undefined) {
+						Pixel.FormatCheckboxListener.detach();
+					}
+					if(Pixel.NightModeCheckboxListener !== undefined) {
+						Pixel.NightModeCheckboxListener.detach();
+					}
+					if(Pixel.FlashingCheckboxListener !== undefined) {
+						Pixel.FlashingCheckboxListener.detach();
+					}
 					$("#info").html("");
 					var txt = "<div id='infoHeader' class='infoHeader'>MENU:</div><br />";
 					txt += "Game Version: "+Pixel.version+"<br /><br />";
 					txt += "<div id='saveGameButton' class='headerButton'>Save Game</div>";
+					txt += "<div id='hardResetButton' class='headerButton'>HARD RESET</div>";
 					txt += "<div style='height: 5px; clear: both;'></div>";
 					txt += "<div style='font-size: 0.7em'>Note: Game is saved automatically every 5 min</div><br />";
 					txt += "<div>Number Formatting: <input type='checkbox' id='numberFormattingCheckbox' ";
 					if(Pixel.State.shortFormats) {
+						txt += "checked";
+					}
+					txt += " /><br /><br />";
+					txt += "<div>Night Mode: <input type='checkbox' id='nightModeCheckbox' ";
+					if(Pixel.State.nightMode) {
+						txt += "checked";
+					}
+					txt += " /><br /><br />";
+					txt += "<div>Flashing Party: <input type='checkbox' id='flashingPartyCheckbox' ";
+					if(Pixel.State.flashingParty) {
 						txt += "checked";
 					}
 					txt += " /><br /><br />";
@@ -360,7 +392,7 @@ Pixel.Init = function() {
 					txt += "<textarea id='importSave' name='importSave' style='height:75px; width:330px;'></textarea>";
 					txt += "<div id='importSaveButton' class='headerButton'>Import</div>";
 					$("#info").html(txt);
-					Pixel.importSaveButtonListener = snack.listener({node: document.getElementById('importSaveButton'),
+					Pixel.ImportSaveButtonListener = snack.listener({node: document.getElementById('importSaveButton'),
 						event: 'click'}, 
 						function (){
 							Pixel.ImportSave($("#importSave").val());
@@ -372,10 +404,39 @@ Pixel.Init = function() {
 							Pixel.SaveGame();
 						}
 					);
+					Pixel.HardResetButtonListener = snack.listener({node: document.getElementById('hardResetButton'),
+						event: 'click'}, 
+						function (){
+							var erase = confirm('Are you sure you want to erase your progress?');
+							if(erase) {
+								localStorage.removeItem("thePixels");
+								location.reload();
+							}
+						}
+					);
 					Pixel.FormatCheckboxListener = snack.listener({node: document.getElementById('numberFormattingCheckbox'),
 						event: 'click'}, 
 						function (){
 							Pixel.State.shortFormats = $('#numberFormattingCheckbox').prop('checked');
+						}
+					);
+					Pixel.NightModeCheckboxListener = snack.listener({node: document.getElementById('nightModeCheckbox'),
+						event: 'click'}, 
+						function (){
+							Pixel.State.nightMode = $('#nightModeCheckbox').prop('checked');
+							if(Pixel.State.nightMode) {
+								$('#body').css('background-color','#121211');
+								$('#body').css('color','#ddddd1');
+							} else {
+								$('#body').css('background-color','#FFF');
+								$('#body').css('color','#000');
+							}
+						}
+					);
+					Pixel.FlashingCheckboxListener = snack.listener({node: document.getElementById('flashingPartyCheckbox'),
+						event: 'click'}, 
+						function (){
+							Pixel.State.flashingParty = $('#flashingPartyCheckbox').prop('checked');
 						}
 					);
 				}
@@ -471,43 +532,32 @@ Pixel.Init = function() {
 		Pixel.State.cursorBombSpeedLvl = 1;
 		Pixel.State.upgrades.owned.push(10);
 		Pixel.State.bombReady = true;
-		$('#bomb').css("display","block");
 		Pixel.TurnOnBombListener();
 	};
 	Pixel.CursorBombSizeUpgradeI = function() {
 		Pixel.State.cursorBombSizeLvl++;
 		Pixel.State.upgrades.owned.push(11);
-		$('#bomb').css("display","block");
 		Pixel.State.bombReady = true;
-		$('#bomb').css("display","block");
 	};
 	Pixel.CursorBombSizeUpgradeII = function() {
 		Pixel.State.cursorBombSizeLvl++;
 		Pixel.State.upgrades.owned.push(13);
-		$('#bomb').css("display","block");
 		Pixel.State.bombReady = true;
-		$('#bomb').css("display","block");
 	};
 	Pixel.CursorBombSizeUpgradeIII = function() {
 		Pixel.State.cursorBombSizeLvl++;
 		Pixel.State.upgrades.owned.push(14);
-		$('#bomb').css("display","block");
 		Pixel.State.bombReady = true;
-		$('#bomb').css("display","block");
 	};
 	Pixel.CursorBombSizeUpgradeIV = function() {
 		Pixel.State.cursorBombSizeLvl++;
 		Pixel.State.upgrades.owned.push(15);
-		$('#bomb').css("display","block");
 		Pixel.State.bombReady = true;
-		$('#bomb').css("display","block");
 	};
 	Pixel.CursorBombSizeUpgradeV = function() {
 		Pixel.State.cursorBombSizeLvl++;
 		Pixel.State.upgrades.owned.push(16);
-		$('#bomb').css("display","block");
 		Pixel.State.bombReady = true;
-		$('#bomb').css("display","block");
 	};
 	Pixel.CursorBombSpeedUpgrade = function() {
 		Pixel.State.cursorBombSpeedLvl++;
@@ -588,36 +638,38 @@ Pixel.Init = function() {
 	Pixel.CollectPixel = function(xPos, yPos, xOff, yOff, type) {
 		var ndx = (xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4 + 3;
 		var offset = 1;
-		while(ndx%4 != 3) {
-			ndx = (xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4 + 3+offset++;
-		}
-		var transparency = Pixel.overlayImageData.data[ndx];
-		if(transparency != 0 && ndx > 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
-			Pixel.State.pixelsThisImage++;
-			Pixel.State.stats.pixelsAllTime++;
-			if(type == "Manual") {
-				Pixel.State.stats.pixelsManuallyCollected++;
-				Pixel.State.stats.manualPixelsThisImage++;
-				if(Pixel.State.upgrades.Check(22)) {
-					Pixel.State.numPixels+=4;
-				} else if(Pixel.State.upgrades.Check(21)) {
-					Pixel.State.numPixels+=2;
-				} else {
-					Pixel.State.numPixels+=1;
-				}
-			} else if(type == "Bomb") {
-				Pixel.State.stats.pixelsBombCollected++;
-				if(Pixel.State.upgrades.Check(26)) {
-					Pixel.State.numPixels+=4;
-				} else if(Pixel.State.upgrades.Check(25)) {
-					Pixel.State.numPixels+=2;
-				} else {
-					Pixel.State.numPixels+=1;
-				}
+		if(ndx > 0) {
+			while(ndx%4 != 3) {
+				ndx = (xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4 + 3+offset++;
 			}
-			Pixel.overlayImageData.data[ndx] = 0;
-		} else if(type == "Manual" && transparency == 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
-			Pixel.State.stats.alreadyUncovered++;
+			var transparency = Pixel.overlayImageData.data[ndx];
+			if(transparency != 0 && ndx > 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+				Pixel.State.pixelsThisImage++;
+				Pixel.State.stats.pixelsAllTime++;
+				if(type == "Manual") {
+					Pixel.State.stats.pixelsManuallyCollected++;
+					Pixel.State.stats.manualPixelsThisImage++;
+					if(Pixel.State.upgrades.Check(22)) {
+						Pixel.State.numPixels+=4;
+					} else if(Pixel.State.upgrades.Check(21)) {
+						Pixel.State.numPixels+=2;
+					} else {
+						Pixel.State.numPixels+=1;
+					}
+				} else if(type == "Bomb") {
+					Pixel.State.stats.pixelsBombCollected++;
+					if(Pixel.State.upgrades.Check(26)) {
+						Pixel.State.numPixels+=4;
+					} else if(Pixel.State.upgrades.Check(25)) {
+						Pixel.State.numPixels+=2;
+					} else {
+						Pixel.State.numPixels+=1;
+					}
+				}
+				Pixel.overlayImageData.data[ndx] = 0;
+			} else if(type == "Manual" && transparency == 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
+				Pixel.State.stats.alreadyUncovered++;
+			}
 		}
 	};
 	
@@ -675,13 +727,49 @@ Pixel.Init = function() {
 		var canvas = document.getElementById("overlayCanvas");
 		Pixel.bombListener = canvas.addEventListener('click', function(evt) {
 			if(Pixel.State.bombReady) {
-				$('#bomb').css("display","none");
 				Pixel.State.bombReady = false;
 				Pixel.bombChain = 0;
 				var rect = canvas.getBoundingClientRect();
 				Pixel.NewBombCanvas(evt.clientX - Math.floor(rect.left), evt.clientY - Math.floor(rect.top), 0);
 			}
 		}, false);
+		
+		//Credit where credit is due
+		//Thanks to http://www.reddit.com/user/Ballpit_Inspector for the
+		//following bomb timer code
+		var bombDiv = document.getElementById("bomb");
+		var bombProgressDiv = document.createElement("div");
+		var bombProgress = document.createElement("div");
+		bombProgress.id="bombProgress";
+		bombProgress.style.width="100%";
+		bombProgress.style.height = "5px";
+		bombProgress.style.backgroundColor="green";
+		 
+		bombDiv.appendChild(bombProgressDiv);
+		bombProgressDiv.appendChild(bombProgress);
+		bombProgressDiv.style.border ="1px solid black";
+		 
+		var progress = 0;
+		setInterval(function(){
+			if(Pixel.State.bombReady) {
+				progress = '100%';
+			} else {
+				progress = (100*(Pixel.timeToBomb / (Pixel.baseBombReloadSpeed/(1+0.2*Pixel.State.cursorBombSpeedLvl))))+"%";
+			}
+			if(Pixel.State.bombReady) {
+				progress = "100%";
+				bombDiv.style.backgroundColor ="#ED978A";
+				bombDiv.style.color = "#FF0000";
+				bombProgress.style.backgroundColor="green";
+			} else {
+				bombDiv.style.backgroundColor ="#6E6E6E";
+				bombDiv.style.color = "#424242";
+				bombProgress.style.backgroundColor="red";
+			}
+			bombDiv.style.display="block";
+			bombProgress.style.width=progress;
+		},10);
+		//end credit
 	};
 			
 	Pixel.ColorPixel = function(xPos, yPos, xOff, yOff, turn) {
@@ -863,12 +951,20 @@ Pixel.Init = function() {
 		).done(function() {
 			var index = 0;
 			imgurImage = imgurResponse.responseJSON.data[index];
+			var nsfw = false;
+			//TODO: Replace with NSFW toggle
+			if(true) {
+				nsfw = imgurImage.nsfw;
+			}
 			while(imgurImage.is_album ||
 				imgurImage.height < 200 ||
 				imgurImage.width < 75 ||
-				imgurImage.nsfw) {
+				nsfw) {
 				index++;
 				imgurImage = imgurResponse.responseJSON.data[index];
+				if(true) {
+					nsfw = imgurImage.nsfw;
+				}
 			}
 		}).fail(function() {
 			//If we failed to get an image, just
@@ -985,8 +1081,12 @@ Pixel.Init = function() {
 				//This is where we do things that need to be updated from old chievos
 
 				//Other random stuff
-				if(Pixel.State.bombReady) {
-					$('#bomb').css("display","block");
+				if(Pixel.State.nightMode) {
+					$('#body').css('background-color','#121211');
+					$('#body').css('color','#ddddd1');
+				} else {
+					$('#body').css('background-color','#FFF');
+					$('#body').css('color','#000');
 				}
 			} else {
 				Pixel.news.push("No Saved Pixels Found");
@@ -1082,6 +1182,12 @@ Pixel.Init = function() {
 			if($.inArray(50, achieved) == -1) {
 				Pixel.State.achievements.UnlockAchievement(50, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
 				ga('send', 'event', 'achievement', 'unlock', 'Chievo 50');
+			}
+		}
+		if(Pixel.State.stats.bestPictureTime <= 60) {
+			if($.inArray(57, achieved) == -1) {
+				Pixel.State.achievements.UnlockAchievement(57, Pixel.GetImageLink(Pixel.State.image, Pixel.State.image.id));
+				ga('send', 'event', 'achievement', 'unlock', 'Chievo 57');
 			}
 		}
 
@@ -1472,7 +1578,6 @@ Pixel.Init = function() {
 	    $('#partyPixel').css('display', 'none');
 		$('#partyPixel').css('top', '-100px');
 		$('#partyPixel').css('left', '-100px');
-		$('#body').css('background-color', 'magenta');
 		var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2)*2;
 		$('#pps').html(pps);
 		Pixel.State.stats.partiesHad++;
@@ -1541,12 +1646,22 @@ Pixel.Init = function() {
                 $("#colorSlider").attr('disabled',false);
 				var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2);
 				$('#pps').html(pps);
-				$('#body').css('background-color', 'white');
+				if(Pixel.State.nightMode) {
+					$('#body').css('background-color', '#121211');
+				} else {
+					$('#body').css('background-color', 'white');
+				}
 		    }
 		    Pixel.timeToPartyRefresh+=1/Pixel.fps;
 		    if(Pixel.timeToPartyRefresh >= Pixel.basePartyRefresh) {
                 Pixel.timeToPartyRefresh = 0;
-				$('#body').css('background-color', Pixel.colors[Math.floor(Math.random()*Pixel.colors.length)]);
+				if(Pixel.State.flashingParty) {
+					if(Pixel.State.nightMode) {
+						$('#body').css('background-color', "DarkSlateBlue");
+					} else {
+						$('#body').css('background-color', Pixel.colors[Math.floor(Math.random()*Pixel.colors.length)]);
+					}
+				}
 		    }
 		}
 		
@@ -1569,7 +1684,6 @@ Pixel.Init = function() {
 			    Pixel.timeToBomb+=1/Pixel.fps;
 			}
 			if(Pixel.timeToBomb >= Pixel.baseBombReloadSpeed/(1+0.2*Pixel.State.cursorBombSpeedLvl)) {
-				$('#bomb').css("display","block");
 				Pixel.State.bombReady = true;
 				Pixel.timeToBomb = 0;
 			}
