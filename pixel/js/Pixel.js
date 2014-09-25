@@ -270,7 +270,7 @@ Pixel.Init = function() {
 					}
 					if(Pixel.State.upgrades.Check(8)) {
 						txt += "<span class='statName'>Total Pixels In Image:</span> "+Pixel.imageWidth*Pixel.imageHeight+"<br />";
-						txt += "<span class='statName'>Image % Complete:</span> "+((Pixel.State.pixelsThisImage/(Pixel.imageWidth*Pixel.imageHeight))*100).toFixed(2)+"<br />";
+						txt += "<span class='statName'>Image % Complete:</span> "+Math.min(100,((Pixel.State.pixelsThisImage/(Pixel.imageWidth*Pixel.imageHeight))*100)).toFixed(2)+"<br />";
 						txt += "<span class='statName'>Fastest Picture Completion:</span> "+Math.floor(Pixel.State.stats.bestPictureTime)+" seconds<br />";
 						txt += "<span class='statName'>Slowest Picture Completion:</span> "+Math.floor(Pixel.State.stats.worstPictureTime)+" seconds<br />";
 						txt += "<span class='statName'>Pictures Completed:</span> "+Pixel.State.stats.picturesCompleted+"<br />";
@@ -636,11 +636,17 @@ Pixel.Init = function() {
 	
 	//This is only for Manual and Bomb, Auto is handled in its timer
 	Pixel.CollectPixel = function(xPos, yPos, xOff, yOff, type) {
-		var ndx = (xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4 + 3;
+		var ndx = ((xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4 + 3)%(Pixel.imageHeight*Pixel.imageWidth*4);
+		if(ndx < 0) {
+			ndx = ndx+(Pixel.imageHeight*Pixel.imageWidth*4);
+		}
 		var offset = 1;
-		if(ndx > 0) {
+		if(ndx > 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
 			while(ndx%4 != 3) {
-				ndx = (xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4 + 3+offset++;
+				ndx = ((xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4 + 3+offset++)%(Pixel.imageHeight*Pixel.imageWidth*4);
+				if(ndx < 0) {
+					ndx = ndx+(Pixel.imageHeight*Pixel.imageWidth*4);
+				}
 			}
 			var transparency = Pixel.overlayImageData.data[ndx];
 			if(transparency != 0 && ndx > 0 && ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
@@ -773,10 +779,16 @@ Pixel.Init = function() {
 	};
 			
 	Pixel.ColorPixel = function(xPos, yPos, xOff, yOff, turn) {
-		var ndx = (xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4;
+		var ndx = ((xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4)%(Pixel.imageHeight*Pixel.imageWidth*4);
+		if(ndx < 0) {
+			ndx = ndx+(Pixel.imageHeight*Pixel.imageWidth*4);
+		}
 		var offset = 1;
 		while(ndx%4 != 0) {
-			ndx = (xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4+offset++;
+			ndx = ((xPos+xOff)*4 + (yPos+yOff)*Pixel.imageWidth*4+offset++)%(Pixel.imageHeight*Pixel.imageWidth*4);
+			if(ndx < 0) {
+				ndx = ndx+(Pixel.imageHeight*Pixel.imageWidth*4);
+			}
 		}
 		if(ndx < Pixel.imageHeight*Pixel.imageWidth*4) {
 			switch(turn) {
@@ -832,12 +844,26 @@ Pixel.Init = function() {
 				}
 				y += yMod;
 			}
-			if((cap == 3 && !Pixel.State.upgrades.Check(11)) ||
-			   (cap == 5 && !Pixel.State.upgrades.Check(13)) ||
-			   (cap == 7 && !Pixel.State.upgrades.Check(14)) ||
-			   (cap == 9 && !Pixel.State.upgrades.Check(15)) ||
-			   (cap == 11 && !Pixel.State.upgrades.Check(16)) ||
-			   (cap >= 13)) {
+			
+			var end = 0;
+			if(Pixel.State.upgrades.Check(16)) {
+				end = Pixel.State.cursorSizeLvl*1.0;
+			} else if(Pixel.State.upgrades.Check(15)) {
+				end = Pixel.State.cursorSizeLvl*0.9;
+			} else if(Pixel.State.upgrades.Check(14)) {
+				end = Pixel.State.cursorSizeLvl*0.8;
+			} else if(Pixel.State.upgrades.Check(13)) {
+				end = Pixel.State.cursorSizeLvl*0.7;
+			} else if(Pixel.State.upgrades.Check(11)) {
+				end = Pixel.State.cursorSizeLvl*0.6;
+			} else if(Pixel.State.upgrades.Check(11)) {
+				end = Pixel.State.cursorSizeLvl*0.5;
+			} else {
+				end = Pixel.State.cursorSizeLvl*0.4;
+			}
+			end = Math.max(end, 4);
+			
+			if(cap >= end) {
 				keepBombing = false;
 			}
 				
@@ -865,8 +891,8 @@ Pixel.Init = function() {
 			}
 			
 			if(Math.random() < comparator) {
-				var randX = Math.floor((Math.random()-0.5)*40)+mouseX;
-				var randY = Math.floor((Math.random()-0.5)*40)+mouseY;
+				var randX = Math.floor((Math.random()-0.5)*(40+Pixel.State.cursorSizeLvl))+mouseX;
+				var randY = Math.floor((Math.random()-0.5)*(40+Pixel.State.cursorSizeLvl))+mouseY;
 				
 				ndx = randX*4 + randY*Pixel.imageWidth*4 + 3;
 				offset = 1;
@@ -952,18 +978,37 @@ Pixel.Init = function() {
 			var index = 0;
 			imgurImage = imgurResponse.responseJSON.data[index];
 			var nsfw = false;
+			var inHistory = false;
 			//TODO: Replace with NSFW toggle
 			if(true) {
 				nsfw = imgurImage.nsfw;
 			}
-			while(imgurImage.is_album ||
+			for(var i=0; i!=Pixel.State.history.length; i+=1) {
+				if(Pixel.State.history[i].id === imgurImage.id) {
+					inHistory = true;
+					break;
+				}
+			}
+			while(index < 60 &&
+				(imgurImage.is_album ||
 				imgurImage.height < 200 ||
 				imgurImage.width < 75 ||
-				nsfw) {
+				nsfw || inHistory)) {
 				index++;
 				imgurImage = imgurResponse.responseJSON.data[index];
+				inHistory = false;
 				if(true) {
 					nsfw = imgurImage.nsfw;
+				}
+				for(var i=0; i!=Pixel.State.history.length; i+=1) {
+					if(Pixel.State.history[i].id === imgurImage.id) {
+						inHistory = true;
+						break;
+					}
+				}
+				if(index == 59) {
+					//
+					break;
 				}
 			}
 		}).fail(function() {
