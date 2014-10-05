@@ -55,7 +55,7 @@ function Upgrades() {
 		desc: "Shows more image information",
 		cost: 8000,
 		persist: false,
-		prereq: 5,
+		prereq: 7,
 		unlockFunction: Pixel.AdvancedInfoUnlock
 	};
 	this.upgrades[7] = {
@@ -64,7 +64,7 @@ function Upgrades() {
 		desc: "Shows some basic stats",
 		cost: 4000,
 		persist: false,
-		prereq: 1,
+		prereq: 5,
 		unlockFunction: Pixel.BasicStatsUnlock
 	};
 	this.upgrades[8] = {
@@ -73,7 +73,7 @@ function Upgrades() {
 		desc: "Shows more statistics",
 		cost: 12000,
 		persist: false,
-		prereq: 7,
+		prereq: 6,
 		unlockFunction: Pixel.AdvancedStatsUnlock
 	};
 	this.upgrades[9] = {
@@ -245,7 +245,34 @@ function Upgrades() {
 		prereq: 25,
 		unlockFunction: Pixel.PixelSplitBomb2Unlock
 	};
-	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18,20,21,22,23,24,25,26);
+	this.upgrades[27] = {
+		id: 27,
+		name: "Party Pixel Spawn",
+		desc: "Cuts the time between party pixels in half",
+		cost: 75000,
+		persist: false,
+		prereq: 28,
+		unlockFunction: Pixel.PartyPixelSpawn1
+	};
+	this.upgrades[28] = {
+		id: 28,
+		name: "Party Pixel Pop",
+		desc: "Gives bonus pixels when you pop a party pixel",
+		cost: 45000,
+		persist: false,
+		prereq: 1,
+		unlockFunction: Pixel.PartyPixelPop
+	};
+	this.upgrades[29] = {
+		id: 29,
+		name: "Party Pixel Party",
+		desc: "Pixel Parties last longer",
+		cost: 225000,
+		persist: false,
+		prereq: 28,
+		unlockFunction: Pixel.PartyPixelDuration
+	};
+	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18,20,21,22,23,24,25,26,28,27,29);
 	this.owned = Array();
 }
 
