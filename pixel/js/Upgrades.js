@@ -252,7 +252,7 @@ function Upgrades() {
 		cost: 75000,
 		persist: false,
 		prereq: 28,
-		unlockFunction: Pixel.PartyPixelSpawn1
+		unlockFunction: Pixel.PartyPixelSpawn
 	};
 	this.upgrades[28] = {
 		id: 28,
@@ -265,15 +265,43 @@ function Upgrades() {
 		prereq: 1,
 		unlockFunction: Pixel.PartyPixelPop
 	};
-	this.upgrades[29] = {
-		id: 29,
-		name: "Party Pixel Party",
-		desc: "Pixel Parties last longer",
-		cost: 225000,
-		persist: false,
-		prereq: 28,
-		unlockFunction: Pixel.PartyPixelDuration
-	};
+    this.upgrades[29] = {
+        id: 29,
+        name: "Party Pixel Party",
+        desc: "Pixel Parties last twice as long",
+        cost: 225000,
+        persist: false,
+        prereq: 28,
+        unlockFunction: Pixel.PartyPixelDuration
+    };
+    this.upgrades[30] = {
+        id: 29,
+        name: "NSFW Toggle",
+        desc: "Lets you toggle the ability to see NSFW images, not to see only NSFW images.",
+        cost: 225000,
+        persist: false,
+        prereq: 28,
+        unlockFunction: Pixel.PartyPixelDuration
+    };
+    this.upgrades[31] = {
+        id: 29,
+        name: "Subreddit",
+        desc: "Pixel Parties last twice as long",
+        cost: 225000,
+        persist: false,
+        prereq: 28,
+        unlockFunction: Pixel.PartyPixelDuration
+    };
+    this.upgrades[32] = {
+        id: 29,
+        name: "Search Term",
+        desc: "Pixel Parties last twice as long",
+        cost: 225000,
+        persist: false,
+        prereq: 28,
+        unlockFunction: Pixel.PartyPixelDuration
+    };
+
 	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18,20,21,22,23,24,25,26,28,27,29);
 	this.owned = Array();
 }
@@ -287,4 +315,4 @@ Upgrades.prototype = {
 	Check:function(ndx) {
 		return !($.inArray(ndx, this.owned) == -1);
 	}
-}
+};
