@@ -90,6 +90,7 @@ Pixel.Init = function() {
 			Pixel.State.cursorBombChainLvl = 0;
 			Pixel.State.cursorBombMaxChainLvl = 1;
 			Pixel.State.color = 0;
+			Pixel.State.partyPixelPopLvl = 1;
 			Pixel.State.bombReady = false;
 			Pixel.State.shortFormats = true;
 			Pixel.State.nightMode = false;
@@ -594,6 +595,9 @@ Pixel.Init = function() {
 	Pixel.PixelSplitBomb2Unlock = function() {
 		Pixel.State.upgrades.owned.push(26);
 	};
+	Pixel.PartyPixelPop = function() {
+		Pixel.State.partyPixelPopLvl++;
+	};
 	
 	//Upgrade Cost Functions
 	Pixel.AutoCursorSpeedCost = function(initial) {
@@ -610,6 +614,9 @@ Pixel.Init = function() {
 	};
 	Pixel.CursorBombMaxChainCost = function(initial) {
 		return Math.floor(initial + initial * 1.25 *  Math.pow(Pixel.State.cursorBombMaxChainLvl,2));
+	};
+	Pixel.PartyPixelPopCost = function(initial) {
+		return Math.floor(initial + initial * Math.pow(1.05,Pixel.State.partyPixelPopMult));
 	};
 	
 	//Other Functions
@@ -1623,6 +1630,7 @@ Pixel.Init = function() {
 	    $('#partyPixel').css('display', 'none');
 		$('#partyPixel').css('top', '-100px');
 		$('#partyPixel').css('left', '-100px');
+		Pixel.State.numPixels *= (1+(0.1*Pixel.State.partyPixelPopLvl));
 		var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2)*2;
 		$('#pps').html(pps);
 		Pixel.State.stats.partiesHad++;

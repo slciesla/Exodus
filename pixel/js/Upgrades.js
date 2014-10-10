@@ -55,7 +55,7 @@ function Upgrades() {
 		desc: "Shows more image information",
 		cost: 8000,
 		persist: false,
-		prereq: 7,
+		prereq: 5,
 		unlockFunction: Pixel.AdvancedInfoUnlock
 	};
 	this.upgrades[7] = {
@@ -64,7 +64,7 @@ function Upgrades() {
 		desc: "Shows some basic stats",
 		cost: 4000,
 		persist: false,
-		prereq: 5,
+		prereq: 1,
 		unlockFunction: Pixel.BasicStatsUnlock
 	};
 	this.upgrades[8] = {
@@ -73,7 +73,7 @@ function Upgrades() {
 		desc: "Shows more statistics",
 		cost: 12000,
 		persist: false,
-		prereq: 6,
+		prereq: 7,
 		unlockFunction: Pixel.AdvancedStatsUnlock
 	};
 	this.upgrades[9] = {
@@ -89,7 +89,7 @@ function Upgrades() {
 	this.upgrades[10] = {
 		id: 10,
 		name: "Cursor Bomb",
-		desc: "Drops a pixel collecting bomb when you click",
+		desc: "Drops a pixel collecting bomb when you click proportional to your cursor size",
 		cost: 8000,
 		persist: false,
 		prereq: 1,
@@ -259,7 +259,9 @@ function Upgrades() {
 		name: "Party Pixel Pop",
 		desc: "Gives bonus pixels when you pop a party pixel",
 		cost: 45000,
-		persist: false,
+		costFunc: Pixel.PartyPixelPopCost,
+		tracker: function() { return Pixel.State.partyPixelPopLvl; },
+		persist: true,
 		prereq: 1,
 		unlockFunction: Pixel.PartyPixelPop
 	};

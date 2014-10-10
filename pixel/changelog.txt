@@ -6,7 +6,8 @@ Added option to stop flashing during party (in menu tab)
 Added Hard Reset button (in menu tab)
 Added Bomb timer (thanks http://www.reddit.com/user/Ballpit_Inspector)
 Reduced time before auto next image triggers from 5 min to 30 sec
-Fixed a bug causing massive lag if part of a large manual cursor was touching "above" the image
+Fixed a bug causing massive lag if part of a large manual cursor was touching "above" the image\
+Fixed the same image showing up multiple times
 Added some more stats
 
 9/16/14 - v1.1.3
