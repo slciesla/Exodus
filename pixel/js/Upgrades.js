@@ -55,7 +55,7 @@ function Upgrades() {
 		desc: "Shows more image information",
 		cost: 8000,
 		persist: false,
-		prereq: 5,
+		prereq: 7,
 		unlockFunction: Pixel.AdvancedInfoUnlock
 	};
 	this.upgrades[7] = {
@@ -64,7 +64,7 @@ function Upgrades() {
 		desc: "Shows some basic stats",
 		cost: 4000,
 		persist: false,
-		prereq: 1,
+		prereq: 5,
 		unlockFunction: Pixel.BasicStatsUnlock
 	};
 	this.upgrades[8] = {
@@ -73,7 +73,7 @@ function Upgrades() {
 		desc: "Shows more statistics",
 		cost: 12000,
 		persist: false,
-		prereq: 7,
+		prereq: 6,
 		unlockFunction: Pixel.AdvancedStatsUnlock
 	};
 	this.upgrades[9] = {
@@ -153,7 +153,7 @@ function Upgrades() {
 	};
 	this.upgrades[17] = {
 		id: 17,
-		name: "Bomb Chain %",
+		name: "Bomb Chain Chance",
 		desc: "Increases chance of bombs triggering another bomb",
 		cost: 10000,
 		costFunc: Pixel.CursorBombChainCost,
@@ -275,34 +275,25 @@ function Upgrades() {
         unlockFunction: Pixel.PartyPixelDuration
     };
     this.upgrades[30] = {
-        id: 29,
+        id: 30,
         name: "NSFW Toggle",
-        desc: "Lets you toggle the ability to see NSFW images, not to see only NSFW images.",
-        cost: 225000,
+        desc: "Lets you toggle the ability to see NSFW images, not to see only NSFW images",
+        cost: 100000,
         persist: false,
-        prereq: 28,
-        unlockFunction: Pixel.PartyPixelDuration
+        prereq: 31,
+        unlockFunction: Pixel.NsfwUnlock
     };
     this.upgrades[31] = {
-        id: 29,
-        name: "Subreddit",
-        desc: "Pixel Parties last twice as long",
-        cost: 225000,
+        id: 31,
+        name: "Search Filter",
+        desc: "Allows you to specifiy a subreddit to pull images from or a search term to filter",
+        cost: 25000,
         persist: false,
-        prereq: 28,
-        unlockFunction: Pixel.PartyPixelDuration
-    };
-    this.upgrades[32] = {
-        id: 29,
-        name: "Search Term",
-        desc: "Pixel Parties last twice as long",
-        cost: 225000,
-        persist: false,
-        prereq: 28,
-        unlockFunction: Pixel.PartyPixelDuration
+        prereq: 8,
+        unlockFunction: Pixel.SearchTermUnlock
     };
 
-	this.upgradeList = Array(0,7,8,5,6,9,4,1,2,10,12,11,13,14,15,16,17,19,18,20,21,22,23,24,25,26,28,27,29);
+	this.upgradeList = Array(0,7,8,5,6,31,30,9,4,1,2,10,12,11,13,14,15,16,17,19,18,20,21,22,23,24,25,26,28,27,29);
 	this.owned = Array();
 }
 

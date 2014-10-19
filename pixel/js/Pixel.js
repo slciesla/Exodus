@@ -120,8 +120,7 @@ Pixel.Init = function() {
 			Pixel.State.stats.partiesHad = 0;
 			Pixel.State.stats.partiesMissed = 0;
 			
-			Pixel.news.push("NSFW images are disabled, but images not labelled as such may still appear. Use at your own risk");
-			Pixel.news.push("This game uses the Imgur random image gallery.");
+			Pixel.news.push("NSFW images are disabled by default, but images not labelled as such may still appear. Use at your own risk");
 			Pixel.news.push(" ");
 			Pixel.news.push("Any PPS increase over 120pps will not take effect due to the nature of the trigger. To be fixed soon™");
 			Pixel.news.push("View the changelog <a href='changelog.txt' target='_blank'>here</a>");
@@ -606,12 +605,11 @@ Pixel.Init = function() {
     };
     Pixel.NsfwUnlock = function() {
         Pixel.State.upgrades.owned.push(30);
-    };
-    Pixel.SubredditUnlock = function() {
-        Pixel.State.upgrades.owned.push(31);
+        $('#nsfwDiv').css('display','block');
     };
     Pixel.SearchTermUnlock = function() {
-        Pixel.State.upgrades.owned.push(32);
+        Pixel.State.upgrades.owned.push(31);
+        $('#searchTermDiv').css('display','block');
     };
 	
 	//Upgrade Cost Functions
@@ -980,8 +978,13 @@ Pixel.Init = function() {
 		Pixel.GetNewImage();
 	};
 	
-	Pixel.GetNewImage = function() {
+	Pixel.GetNewImage = function(incomingPage) {
 		ga('send', 'event', 'global', 'newimage');
+        var index = 0;
+        var page = 1;
+        if(incomingPage !== undefined && incomingPage !== null) {
+            page = incomingPage;
+        }
 		var imgurImage = {};
 		try {
 			var canvas = document.getElementById("overlayCanvas");
@@ -993,16 +996,27 @@ Pixel.Init = function() {
 		$.ajaxSetup({
 			headers: { 'Authorization': 'Client-ID 74f45f2bd4ebd51' }
 		});
+		
+		var url = '';
+		var searchTerm = $('#searchTerm').val();
+		if(searchTerm === "") {
+			//If the search term is empty, get from the random gallery
+			url = 'https://api.imgur.com/3/gallery/random/random/'+page;
+		} else if(searchTerm.indexOf("/r/") !== -1) {
+			//If the search term field has a /r/, do subreddit search
+			url = 'https://api.imgur.com/3/gallery'+searchTerm+'/top/'+page;
+		} else {
+			//Otherwise, it's a search term
+			url = 'https://api.imgur.com/3/gallery/search/time/top/'+page+'?q='+searchTerm;
+		}
 		//Call the imgur API to get a random image
-		var imgurResponse = $.get(
-			'https://api.imgur.com/3/gallery/random/random/1'
+		var imgurResponse = $.get(url
 		).done(function() {
-			var index = 0;
 			imgurImage = imgurResponse.responseJSON.data[index];
 			var nsfw = false;
 			var inHistory = false;
-			//TODO: Replace with NSFW toggle
-			if(true) {
+            //If NSFW is checked, don't care about NSFW tag so keep it false
+			if(!$('#nsfwCheckbox').prop('checked')) {
 				nsfw = imgurImage.nsfw;
 			}
 			for(var i=0; i!==Pixel.State.history.length; i+=1) {
@@ -1019,7 +1033,8 @@ Pixel.Init = function() {
 				index++;
 				imgurImage = imgurResponse.responseJSON.data[index];
 				inHistory = false;
-				if(true) {
+                //If NSFW is checked, don't care about NSFW tag so keep it false
+                if(!$('#nsfwCheckbox').prop('checked')) {
 					nsfw = imgurImage.nsfw;
 				}
 				for(var j=0; j!==Pixel.State.history.length; j+=1) {
@@ -1027,10 +1042,6 @@ Pixel.Init = function() {
 						inHistory = true;
 						break;
 					}
-				}
-				if(index === 59) {
-					//
-					break;
 				}
 			}
 		}).fail(function() {
@@ -1041,17 +1052,22 @@ Pixel.Init = function() {
 			imgurImage.link = "images/blue.png";
 			Pixel.news.push("Error getting image from imgur, have a pretty blue image");
 		}).always(function() {
-			Pixel.pictureComplete = false;
-			//We got a new image, reset the game
-			Pixel.State.overlay = null;
-			Pixel.State.image = imgurImage;
-			Pixel.State.pixelsThisImage = 0;
-			Pixel.State.stats.timePlayedPicture = 0;
-			Pixel.State.stats.manualPixelsThisImage = 0;
-			Pixel.State.manualBombsThisImage = 0;
-			Pixel.State.lastRandX = 0;
-			Pixel.State.lastRandY = 0;
-			Pixel.LoadImage(imgurImage);
+            if(index === 60) {
+                //If we hit the max items on a page, try again
+                Pixel.GetNewImage(page++);
+            } else {
+                Pixel.pictureComplete = false;
+                //We got a new image, reset the game
+                Pixel.State.overlay = null;
+                Pixel.State.image = imgurImage;
+                Pixel.State.pixelsThisImage = 0;
+                Pixel.State.stats.timePlayedPicture = 0;
+                Pixel.State.stats.manualPixelsThisImage = 0;
+                Pixel.State.manualBombsThisImage = 0;
+                Pixel.State.lastRandX = 0;
+                Pixel.State.lastRandY = 0;
+                Pixel.LoadImage(imgurImage);
+            }
 		});
 	};
 	
@@ -1115,7 +1131,7 @@ Pixel.Init = function() {
 	//---------------------------
 	Pixel.LoadGame = function() {
 		try {
-			if(localStorage.getItem("thePixels") !== JSON.stringify({})) {
+			if(localStorage.getItem("thePixels") !== null && localStorage.getItem("thePixels") !== JSON.stringify({})) {
 				//We want to extend the state so that if the user is loading an old version, it works.
 				//This only runs into issues if variables change, which means we'll need special cases 
 				//whenever that happens.
@@ -1144,6 +1160,12 @@ Pixel.Init = function() {
 				if(Pixel.State.upgrades.Check(20)) {
 					$('#colorSliderContainer').css("display","block");
 				}
+                if(Pixel.State.upgrades.Check(30)) {
+                    $('#nsfwDiv').css('display','block');
+                }
+                if(Pixel.State.upgrades.Check(31)) {
+                    $('#searchTermDiv').css('display','block');
+                }
 				
 				//This is where we do things that need to be updated from old chievos
 
@@ -1156,9 +1178,13 @@ Pixel.Init = function() {
 					$('#body').css('color','#000');
 				}
 			} else {
+				Pixel.news.push(" ");
 				Pixel.news.push("No Saved Pixels Found");
+				var epilepsy = confirm("Press cancel to turn off flashing colors if you are sensitive to epilepsy triggers. This option can be toggled in the menu later.");
+				Pixel.State.flashingParty = epilepsy;
 			}
 		} catch(e) {
+			Pixel.news.push(" ");
 			Pixel.news.push("Error Loading Saved Pixels");
 			//console.log(e.message);
 		}

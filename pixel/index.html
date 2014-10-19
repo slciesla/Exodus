@@ -59,14 +59,14 @@
 		</div>
 	</div>
 	<div id='rightCol'>
-		<div id='headerButtons'>
+		<div class='headerButtons'>
 			<div id='upgradesHeaderBtn' class='headerButton'>Upgrades</div>
 			<div id='imageInfoHeaderBtn' class='headerButton'>Image Info</div>
 			<div id='achievementsHeaderBtn' class='headerButton'>Achievements</div>
 			<div id='menuHeaderBtn' class='headerButton'>Menu</div>
 		</div>
 		<div style='clear: both; height: 1px;'></div>
-		<div id='headerButtons'>
+		<div class='headerButtons'>
 			<div id='autoFinishToggle' class='headerButton' style='display: none; cursor: default;'>
 				<input type="checkbox" id='autoFinishCheckbox' />Auto Image
 			</div>
@@ -76,6 +76,14 @@
 			</div>
 			<div id='imageHistoryHeaderBtn' class='headerButton'>History</div>
 		</div>
+    <div class='headerButtons'>
+      <div id="searchTermDiv">
+        <input type="text" class="searchBox" id="searchTerm" placeholder="Search Term / Subreddit" />
+      </div>
+      <div id="nsfwDiv">
+        <input type="checkbox" id='nsfwCheckbox' />Toggle NSFW
+      </div>
+    </div>
 		<div style='clear: both; height: 1px;'></div>
 		<div id='nextImage' class='headerButton'>Get Next Image</div>
 		
