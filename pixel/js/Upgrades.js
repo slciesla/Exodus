@@ -258,7 +258,7 @@ function Upgrades() {
 		id: 28,
 		name: "Party Pixel Pop",
 		desc: "Gives bonus pixels when you pop a party pixel",
-		cost: 45000,
+		cost: 5000,
 		costFunc: Pixel.PartyPixelPopCost,
 		tracker: function() { return Pixel.State.partyPixelPopLvl; },
 		persist: true,

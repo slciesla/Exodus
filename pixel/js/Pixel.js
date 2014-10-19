@@ -629,7 +629,7 @@ Pixel.Init = function() {
 		return Math.floor(initial + initial * 1.25 *  Math.pow(Pixel.State.cursorBombMaxChainLvl,2));
 	};
 	Pixel.PartyPixelPopCost = function(initial) {
-		return Math.floor(initial + initial * Math.pow(1.05,Pixel.State.partyPixelPopMult));
+		return Math.floor(initial + initial * Math.pow(1.05,Pixel.State.partyPixelPopLvl));
 	};
 	
 	//Other Functions
@@ -979,7 +979,6 @@ Pixel.Init = function() {
 	};
 	
 	Pixel.GetNewImage = function(incomingPage) {
-		ga('send', 'event', 'global', 'newimage');
         var index = 0;
         var page = 1;
         if(incomingPage !== undefined && incomingPage !== null) {
@@ -999,7 +998,10 @@ Pixel.Init = function() {
 		
 		var url = '';
 		var searchTerm = $('#searchTerm').val();
-		if(searchTerm === "") {
+		if(searchTerm === "" || page === 11) {
+			if(page === 11) {
+				Pixel.news.push("Error getting image from search terms, using random gallery");
+			}
 			//If the search term is empty, get from the random gallery
 			url = 'https://api.imgur.com/3/gallery/random/random/'+page;
 		} else if(searchTerm.indexOf("/r/") !== -1) {
@@ -1015,17 +1017,19 @@ Pixel.Init = function() {
 			imgurImage = imgurResponse.responseJSON.data[index];
 			var nsfw = false;
 			var inHistory = false;
-            //If NSFW is checked, don't care about NSFW tag so keep it false
-			if(!$('#nsfwCheckbox').prop('checked')) {
-				nsfw = imgurImage.nsfw;
-			}
-			for(var i=0; i!==Pixel.State.history.length; i+=1) {
-				if(Pixel.State.history[i].id === imgurImage.id) {
-					inHistory = true;
-					break;
+			if(index < 59) {
+				//If NSFW is checked, don't care about NSFW tag so keep it false
+				if(!$('#nsfwCheckbox').prop('checked')) {
+					nsfw = imgurImage.nsfw;
+				}
+				for(var i=0; i!==Pixel.State.history.length; i+=1) {
+					if(Pixel.State.history[i].id === imgurImage.id) {
+						inHistory = true;
+						break;
+					}
 				}
 			}
-			while(index < 60 &&
+			while(index < 59 &&
 				(imgurImage.is_album ||
 				imgurImage.height < 200 ||
 				imgurImage.width < 75 ||
@@ -1052,10 +1056,11 @@ Pixel.Init = function() {
 			imgurImage.link = "images/blue.png";
 			Pixel.news.push("Error getting image from imgur, have a pretty blue image");
 		}).always(function() {
-            if(index === 60) {
+            if(index === 59) {
                 //If we hit the max items on a page, try again
                 Pixel.GetNewImage(page++);
             } else {
+				ga('send', 'event', 'global', 'newimage');
                 Pixel.pictureComplete = false;
                 //We got a new image, reset the game
                 Pixel.State.overlay = null;
