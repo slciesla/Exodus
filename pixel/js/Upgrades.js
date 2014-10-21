@@ -278,7 +278,7 @@ function Upgrades() {
         id: 30,
         name: "NSFW Toggle",
         desc: "Lets you toggle the ability to see NSFW images, not to see only NSFW images",
-        cost: 100000,
+        cost: 1000000,
         persist: false,
         prereq: 31,
         unlockFunction: Pixel.NsfwUnlock
@@ -287,7 +287,7 @@ function Upgrades() {
         id: 31,
         name: "Search Filter",
         desc: "Allows you to specifiy a subreddit to pull images from or a search term to filter",
-        cost: 25000,
+        cost: 250000,
         persist: false,
         prereq: 8,
         unlockFunction: Pixel.SearchTermUnlock

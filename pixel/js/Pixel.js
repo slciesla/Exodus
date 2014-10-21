@@ -780,7 +780,7 @@ Pixel.Init = function() {
 			if(Pixel.State.bombReady) {
 				progress = '100%';
 			} else {
-				progress = (100*(Pixel.timeToBomb / (Pixel.baseBombReloadSpeed/(1+0.2*Pixel.State.cursorBombSpeedLvl))))+"%";
+				progress = (100*(Pixel.timeToBomb / (Pixel.baseBombReloadSpeed/(1+0.1*Pixel.State.cursorBombSpeedLvl))))+"%";
 			}
 			if(Pixel.State.bombReady) {
 				progress = "100%";
@@ -998,7 +998,7 @@ Pixel.Init = function() {
 		
 		var url = '';
 		var searchTerm = $('#searchTerm').val();
-		if(searchTerm === "" || page === 11) {
+		if(searchTerm === "" || page > 10) {
 			if(page === 11) {
 				Pixel.news.push("Error getting image from search terms, using random gallery");
 			}
@@ -1014,37 +1014,42 @@ Pixel.Init = function() {
 		//Call the imgur API to get a random image
 		var imgurResponse = $.get(url
 		).done(function() {
-			imgurImage = imgurResponse.responseJSON.data[index];
-			var nsfw = false;
-			var inHistory = false;
-			if(index < 59) {
-				//If NSFW is checked, don't care about NSFW tag so keep it false
-				if(!$('#nsfwCheckbox').prop('checked')) {
-					nsfw = imgurImage.nsfw;
-				}
-				for(var i=0; i!==Pixel.State.history.length; i+=1) {
-					if(Pixel.State.history[i].id === imgurImage.id) {
-						inHistory = true;
-						break;
+			if(imgurResponse.responseJSON.data.length === 0) {
+				Pixel.news.push("No data found, bad search term or subreddit. Pulling from random");
+				Pixel.GetNewImage(99);
+			} else {
+				imgurImage = imgurResponse.responseJSON.data[index];
+				var nsfw = false;
+				var inHistory = false;
+				if(index < 59) {
+					//If NSFW is checked, don't care about NSFW tag so keep it false
+					if(!$('#nsfwCheckbox').prop('checked')) {
+						nsfw = imgurImage.nsfw;
+					}
+					for(var i=0; i!==Pixel.State.history.length; i+=1) {
+						if(Pixel.State.history[i].id === imgurImage.id) {
+							inHistory = true;
+							break;
+						}
 					}
 				}
-			}
-			while(index < 59 &&
-				(imgurImage.is_album ||
-				imgurImage.height < 200 ||
-				imgurImage.width < 75 ||
-				nsfw || inHistory)) {
-				index++;
-				imgurImage = imgurResponse.responseJSON.data[index];
-				inHistory = false;
-                //If NSFW is checked, don't care about NSFW tag so keep it false
-                if(!$('#nsfwCheckbox').prop('checked')) {
-					nsfw = imgurImage.nsfw;
-				}
-				for(var j=0; j!==Pixel.State.history.length; j+=1) {
-					if(Pixel.State.history[j].id === imgurImage.id) {
-						inHistory = true;
-						break;
+				while(index < 59 &&
+					(imgurImage.is_album ||
+					imgurImage.height < 200 ||
+					imgurImage.width < 75 ||
+					nsfw || inHistory)) {
+					index++;
+					imgurImage = imgurResponse.responseJSON.data[index];
+					inHistory = false;
+					//If NSFW is checked, don't care about NSFW tag so keep it false
+					if(!$('#nsfwCheckbox').prop('checked')) {
+						nsfw = imgurImage.nsfw;
+					}
+					for(var j=0; j!==Pixel.State.history.length; j+=1) {
+						if(Pixel.State.history[j].id === imgurImage.id) {
+							inHistory = true;
+							break;
+						}
 					}
 				}
 			}
@@ -1056,23 +1061,25 @@ Pixel.Init = function() {
 			imgurImage.link = "images/blue.png";
 			Pixel.news.push("Error getting image from imgur, have a pretty blue image");
 		}).always(function() {
-            if(index === 59) {
-                //If we hit the max items on a page, try again
-                Pixel.GetNewImage(page++);
-            } else {
-				ga('send', 'event', 'global', 'newimage');
-                Pixel.pictureComplete = false;
-                //We got a new image, reset the game
-                Pixel.State.overlay = null;
-                Pixel.State.image = imgurImage;
-                Pixel.State.pixelsThisImage = 0;
-                Pixel.State.stats.timePlayedPicture = 0;
-                Pixel.State.stats.manualPixelsThisImage = 0;
-                Pixel.State.manualBombsThisImage = 0;
-                Pixel.State.lastRandX = 0;
-                Pixel.State.lastRandY = 0;
-                Pixel.LoadImage(imgurImage);
-            }
+			if(imgurResponse.responseJSON.data.length > 0) {
+				if(index === 59) {
+					//If we hit the max items on a page, try again
+					Pixel.GetNewImage(page+1);
+				} else {
+					ga('send', 'event', 'global', 'newimage');
+					Pixel.pictureComplete = false;
+					//We got a new image, reset the game
+					Pixel.State.overlay = null;
+					Pixel.State.image = imgurImage;
+					Pixel.State.pixelsThisImage = 0;
+					Pixel.State.stats.timePlayedPicture = 0;
+					Pixel.State.stats.manualPixelsThisImage = 0;
+					Pixel.State.manualBombsThisImage = 0;
+					Pixel.State.lastRandX = 0;
+					Pixel.State.lastRandY = 0;
+					Pixel.LoadImage(imgurImage);
+				}
+			}
 		});
 	};
 	
@@ -1676,8 +1683,8 @@ Pixel.Init = function() {
 	    $('#partyPixel').css('display', 'none');
 		$('#partyPixel').css('top', '-100px');
 		$('#partyPixel').css('left', '-100px');
-		Pixel.State.numPixels *= (1+(0.1*Pixel.State.partyPixelPopLvl));
-		var pps = ((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2)*2;
+		Pixel.State.numPixels = Math.floor(Pixel.State.numPixels*(1+(0.1*Pixel.State.partyPixelPopLvl)));
+		var pps = Math.floor(((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2)*2);
 		$('#pps').html(pps);
 		Pixel.State.stats.partiesHad++;
         Pixel.partyTime = true;
@@ -1790,7 +1797,7 @@ Pixel.Init = function() {
 			if(Pixel.partyTime) {
 			    Pixel.timeToBomb+=1/Pixel.fps;
 			}
-			if(Pixel.timeToBomb >= Pixel.baseBombReloadSpeed/(1+0.2*Pixel.State.cursorBombSpeedLvl)) {
+			if(Pixel.timeToBomb >= Pixel.baseBombReloadSpeed/(1+0.1*Pixel.State.cursorBombSpeedLvl)) {
 				Pixel.State.bombReady = true;
 				Pixel.timeToBomb = 0;
 			}
