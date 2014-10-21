@@ -124,7 +124,6 @@ Pixel.Init = function() {
 			Pixel.news.push(" ");
 			Pixel.news.push("Any PPS increase over 120pps will not take effect due to the nature of the trigger. To be fixed soon™");
 			Pixel.news.push("View the changelog <a href='changelog.txt' target='_blank'>here</a>");
-			Pixel.news.push("***If bright, rapidly flashing colors can or do bother you, please turn off 'Flashing Party' under the menu tab!***");
 			
 			//Create the random party pixel overlay - we should only ever do this once as it sucks
 			if(Pixel.partyOverlay === null) {
@@ -629,7 +628,7 @@ Pixel.Init = function() {
 		return Math.floor(initial + initial * 1.25 *  Math.pow(Pixel.State.cursorBombMaxChainLvl,2));
 	};
 	Pixel.PartyPixelPopCost = function(initial) {
-		return Math.floor(initial + initial * Math.pow(1.05,Pixel.State.partyPixelPopLvl));
+		return Math.floor(initial + initial * Math.pow(1.2,Pixel.State.partyPixelPopLvl));
 	};
 	
 	//Other Functions
@@ -1683,7 +1682,7 @@ Pixel.Init = function() {
 	    $('#partyPixel').css('display', 'none');
 		$('#partyPixel').css('top', '-100px');
 		$('#partyPixel').css('left', '-100px');
-		Pixel.State.numPixels = Math.floor(Pixel.State.numPixels*(1+(0.1*Pixel.State.partyPixelPopLvl)));
+		Pixel.State.numPixels = Math.floor(Pixel.State.numPixels*(1+(0.01*Pixel.State.partyPixelPopLvl)));
 		var pps = Math.floor(((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2)*2);
 		$('#pps').html(pps);
 		Pixel.State.stats.partiesHad++;

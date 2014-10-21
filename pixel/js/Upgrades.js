@@ -251,7 +251,7 @@ function Upgrades() {
 		desc: "Cuts the time between party pixels in half",
 		cost: 75000,
 		persist: false,
-		prereq: 28,
+		prereq: 1,
 		unlockFunction: Pixel.PartyPixelSpawn
 	};
 	this.upgrades[28] = {
@@ -271,7 +271,7 @@ function Upgrades() {
         desc: "Pixel Parties last twice as long",
         cost: 225000,
         persist: false,
-        prereq: 28,
+        prereq: 27,
         unlockFunction: Pixel.PartyPixelDuration
     };
     this.upgrades[30] = {
