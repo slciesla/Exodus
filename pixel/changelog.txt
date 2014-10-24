@@ -1,5 +1,9 @@
 Pixel This Change Log
 
+10/24/14 - v1.2.1
+Fixed an issue with most subreddits not working. The issue seemed to be rooted in the fact that not all subreddits
+support sorting by "top", but all that I've tested seem to support sorting by time, so I switched to that.
+
 10/24/14 - v1.2.0
 Bombs got a huge boost and as a result had the reload time boost granted by an upgrade quartered
 Added a prompt on a new session about the party pixel flashing, option is still in the menu

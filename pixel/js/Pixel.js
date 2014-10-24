@@ -25,7 +25,7 @@ Pixel.Init = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Pixel.version = 'v1.2.0';
+			Pixel.version = 'v1.2.1';
 			Pixel.initialized = 1;
 			Pixel.fps = 120;
 			Pixel.saveEvery = 300; //Save every 5 min
@@ -1018,7 +1018,7 @@ Pixel.Init = function() {
 			url = 'https://api.imgur.com/3/gallery/random/random/'+page;
 		} else if(searchTerm.indexOf("/r/") !== -1) {
 			//If the search term field has a /r/, do subreddit search
-			url = 'https://api.imgur.com/3/gallery'+searchTerm+'/top/'+page;
+			url = 'https://api.imgur.com/3/gallery'+searchTerm+'/time/'+page;
 		} else {
 			//Otherwise, it's a search term
 			url = 'https://api.imgur.com/3/gallery/search/time/top/'+page+'?q='+searchTerm;
