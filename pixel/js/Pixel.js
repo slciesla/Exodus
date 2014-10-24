@@ -11,7 +11,7 @@ function hrformat(number) {
 		var e = Math.floor(Math.log(number) / Math.log(1000));
 		return number < 1000 ? Math.floor(number) : ((number / Math.pow(1000, e)).toFixed(2) + s[e]);
 	} else {
-		return number;
+		return Math.floor(number);
 	}
 }
 
@@ -25,7 +25,7 @@ Pixel.Init = function() {
 			//---------------------------
 			//Constants
 			//---------------------------
-			Pixel.version = 'v1.1.4';
+			Pixel.version = 'v1.2.0';
 			Pixel.initialized = 1;
 			Pixel.fps = 120;
 			Pixel.saveEvery = 300; //Save every 5 min
@@ -91,6 +91,9 @@ Pixel.Init = function() {
 			Pixel.State.cursorBombMaxChainLvl = 1;
 			Pixel.State.color = 0;
 			Pixel.State.partyPixelPopLvl = 1;
+			Pixel.State.autoNextImage = false;
+			Pixel.State.nsfwToggle = false;
+			Pixel.State.searchTerm = "";
 			Pixel.State.bombReady = false;
 			Pixel.State.shortFormats = true;
 			Pixel.State.nightMode = false;
@@ -119,6 +122,7 @@ Pixel.Init = function() {
 			Pixel.State.stats.alreadyUncovered = 0;
 			Pixel.State.stats.partiesHad = 0;
 			Pixel.State.stats.partiesMissed = 0;
+			Pixel.State.stats.partyPopPixels = 0;
 			
 			Pixel.news.push("NSFW images are disabled by default, but images not labelled as such may still appear. Use at your own risk");
 			Pixel.news.push(" ");
@@ -256,24 +260,33 @@ Pixel.Init = function() {
 					txt += "<div class='infoHeader'>Statistics:</div><br />";
 					
 					if(Pixel.State.upgrades.Check(7)) {
-						txt += "<span class='statName'>Time Played:</span> "+Math.floor(Pixel.State.stats.timePlayed)+" seconds<br />";
-						txt += "<span class='statName'>Time Played this Picture:</span> "+Math.floor(Pixel.State.stats.timePlayedPicture)+" seconds<br />";
-						txt += "<span class='statName'>All Time Pixels:</span> "+Pixel.State.stats.pixelsAllTime+"<br />";
-						txt += "<span class='statName'>All Time Manual Pixels:</span> "+Pixel.State.stats.pixelsManuallyCollected+"<br />";
-						txt += "<span class='statName'>All Time Auto Pixels:</span> "+Pixel.State.stats.pixelsAutoCollected+"<br />";
-						txt += "<span class='statName'>All Time Bomb Pixels:</span> "+Pixel.State.stats.pixelsBombCollected+"<br />";
-						txt += "<span class='statName'>Max Bomb Chain:</span> "+Pixel.State.stats.maxBombChain+"<br />";
-						txt += "<span class='statName'>Pixels This Image:</span> "+Pixel.State.pixelsThisImage+"<br />";
+						txt += "<span class='statName'>Time Played:</span> "+hrformat(Pixel.State.stats.timePlayed)+" seconds<br />";
+						txt += "<span class='statName'>Time Played this Picture:</span> "+hrformat(Pixel.State.stats.timePlayedPicture)+" seconds<br />";
+						txt += "<span class='statName'>All Time Pixels:</span> "+hrformat(Pixel.State.stats.pixelsAllTime)+"<br />";
+						txt += "<span class='statName'>All Time Manual Pixels:</span> "+hrformat(Pixel.State.stats.pixelsManuallyCollected)+"<br />";
+						txt += "<span class='statName'>All Time Auto Pixels:</span> "+hrformat(Pixel.State.stats.pixelsAutoCollected)+"<br />";
+						txt += "<span class='statName'>All Time Bomb Pixels:</span> "+hrformat(Pixel.State.stats.pixelsBombCollected)+"<br />";
+						txt += "<span class='statName'>All Time Party Pop Pixels:</span> "+hrformat(Pixel.State.stats.partyPopPixels)+"<br />";
+						txt += "<span class='statName'>Max Bomb Chain:</span> "+hrformat(Pixel.State.stats.maxBombChain)+"<br />";
+						txt += "<span class='statName'>Pixels This Image:</span> "+hrformat(Pixel.State.pixelsThisImage)+"<br />";
 					} else {
 						txt += "<div>Requires Purchase!</div><br /><br />";
 					}
 					if(Pixel.State.upgrades.Check(8)) {
-						txt += "<span class='statName'>Total Pixels In Image:</span> "+Pixel.imageWidth*Pixel.imageHeight+"<br />";
+						txt += "<span class='statName'>Total Pixels In Image:</span> "+hrformat(Pixel.imageWidth*Pixel.imageHeight)+"<br />";
 						txt += "<span class='statName'>Image % Complete:</span> "+Math.min(100,((Pixel.State.pixelsThisImage/(Pixel.imageWidth*Pixel.imageHeight))*100)).toFixed(2)+"<br />";
-						txt += "<span class='statName'>Fastest Picture Completion:</span> "+Math.floor(Pixel.State.stats.bestPictureTime)+" seconds<br />";
-						txt += "<span class='statName'>Slowest Picture Completion:</span> "+Math.floor(Pixel.State.stats.worstPictureTime)+" seconds<br />";
-						txt += "<span class='statName'>Pictures Completed:</span> "+Pixel.State.stats.picturesCompleted+"<br />";
-						txt += "<span class='statName'>Pictured Skipped:</span> "+Pixel.State.stats.picturesSkipped+"<br />";
+						if(Pixel.State.stats.bestPictureTime === 999999999) {
+							txt += "<span class='statName'>Fastest Picture Completion:</span> None<br />";
+						} else {
+							txt += "<span class='statName'>Fastest Picture Completion:</span> "+hrformat(Pixel.State.stats.bestPictureTime)+" seconds<br />";
+						}
+						if(Pixel.State.stats.worstPictureTime === 0) {
+							txt += "<span class='statName'>Fastest Picture Completion:</span> None<br />";
+						} else {
+							txt += "<span class='statName'>Slowest Picture Completion:</span> "+hrformat(Pixel.State.stats.worstPictureTime)+" seconds<br />";
+						}
+						txt += "<span class='statName'>Pictures Completed:</span> "+hrformat(Pixel.State.stats.picturesCompleted)+"<br />";
+						txt += "<span class='statName'>Pictured Skipped:</span> "+hrformat(Pixel.State.stats.picturesSkipped)+"<br />";
 					}
 					$("#info").html(txt);
 				}
@@ -779,7 +792,7 @@ Pixel.Init = function() {
 			if(Pixel.State.bombReady) {
 				progress = '100%';
 			} else {
-				progress = (100*(Pixel.timeToBomb / (Pixel.baseBombReloadSpeed/(1+0.1*Pixel.State.cursorBombSpeedLvl))))+"%";
+				progress = (100*(Pixel.timeToBomb / (Pixel.baseBombReloadSpeed/(1+0.05*Pixel.State.cursorBombSpeedLvl))))+"%";
 			}
 			if(Pixel.State.bombReady) {
 				progress = "100%";
@@ -1188,6 +1201,10 @@ Pixel.Init = function() {
 					$('#body').css('background-color','#FFF');
 					$('#body').css('color','#000');
 				}
+				
+				$('#autoFinishCheckbox').prop('checked', Pixel.State.autoFinishCheckbox);
+				$('#nsfwCheckbox').prop('checked', Pixel.State.nsfwToggle);
+				$('#searchTerm').val(Pixel.State.searchTerm);
 			} else {
 				Pixel.news.push(" ");
 				Pixel.news.push("No Saved Pixels Found");
@@ -1234,6 +1251,11 @@ Pixel.Init = function() {
 	};
 	
 	Pixel.SaveGame = function(saveCanvas) {
+		// Grab some user input items
+		Pixel.State.autoFinishCheckbox = $('#autoFinishCheckbox').prop('checked');
+		Pixel.State.nsfwToggle = $('#nsfwCheckbox').prop('checked');
+		Pixel.State.searchTerm = $('#searchTerm').val();
+		
 		Pixel.UpdateCheck();
 		if((saveCanvas === undefined || saveCanvas === true) && !Pixel.partyTime) {
 			//Save the overlay, no need to do this every pixel uncovered
@@ -1682,6 +1704,7 @@ Pixel.Init = function() {
 	    $('#partyPixel').css('display', 'none');
 		$('#partyPixel').css('top', '-100px');
 		$('#partyPixel').css('left', '-100px');
+		Pixel.State.stats.partyPopPixels += Math.floor(Pixel.State.numPixels*(0.01*Pixel.State.partyPixelPopLvl));
 		Pixel.State.numPixels = Math.floor(Pixel.State.numPixels*(1+(0.01*Pixel.State.partyPixelPopLvl)));
 		var pps = Math.floor(((Pixel.State.autoCursorSpeedLvl*Pixel.baseAutoCursorUpgradeSpeed)/Pixel.baseAutoCursorSpeed).toFixed(2)*2);
 		$('#pps').html(pps);
@@ -1796,7 +1819,7 @@ Pixel.Init = function() {
 			if(Pixel.partyTime) {
 			    Pixel.timeToBomb+=1/Pixel.fps;
 			}
-			if(Pixel.timeToBomb >= Pixel.baseBombReloadSpeed/(1+0.1*Pixel.State.cursorBombSpeedLvl)) {
+			if(Pixel.timeToBomb >= Pixel.baseBombReloadSpeed/(1+0.05*Pixel.State.cursorBombSpeedLvl)) {
 				Pixel.State.bombReady = true;
 				Pixel.timeToBomb = 0;
 			}

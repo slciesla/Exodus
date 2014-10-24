@@ -249,7 +249,7 @@ function Upgrades() {
 		id: 27,
 		name: "Party Pixel Spawn",
 		desc: "Cuts the time between party pixels in half",
-		cost: 75000,
+		cost: 250000,
 		persist: false,
 		prereq: 1,
 		unlockFunction: Pixel.PartyPixelSpawn
@@ -258,7 +258,7 @@ function Upgrades() {
 		id: 28,
 		name: "Party Pixel Pop",
 		desc: "Gives bonus pixels when you pop a party pixel",
-		cost: 5000,
+		cost: 10000,
 		costFunc: Pixel.PartyPixelPopCost,
 		tracker: function() { return Pixel.State.partyPixelPopLvl; },
 		persist: true,
@@ -269,7 +269,7 @@ function Upgrades() {
         id: 29,
         name: "Party Pixel Party",
         desc: "Pixel Parties last twice as long",
-        cost: 225000,
+        cost: 1250000,
         persist: false,
         prereq: 27,
         unlockFunction: Pixel.PartyPixelDuration
